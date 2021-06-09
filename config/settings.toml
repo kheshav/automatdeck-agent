@@ -4,10 +4,10 @@ check_interval = 300     # Check interval in seconds (default: 300)
 access_key = ""
 secret_key = ""
 log_dir = "log" # default: in folder named "log" where ad-agent is installed
-log_level = "DEBUG"  # Allowed values: INFO, WARN, DEBUG default: DEBUG
+log_level = "DEBUG"  # Allowed values: INFO, WARN, DEBUG (default: DEBUG)
 
 [security]
-enable_encryption = false
+enable_encryption = false # Encrypt data before sending to api (default: false)
 key_path = ""
 
 [modules]

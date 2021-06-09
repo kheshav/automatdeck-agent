@@ -24,7 +24,9 @@ fn get_log_level(level: &str) -> LevelFilter{
 fn main(){
     
     let settings = Settings::new();
-    let _s = serde_json::to_string(&Settings::deserialize(settings.clone()).unwrap()).unwrap();
+    let _s = serde_json::to_string(&Settings::deserialize(settings.clone())
+                                   .unwrap_or_default()
+                                   ).unwrap();
     //println!("{}", settings.get::<String>("main.url").unwrap());
     //println!("{:?}", settings.get::<u64>("main.check_interval").unwrap());
     
@@ -38,7 +40,7 @@ fn main(){
         .build(Root::builder()
                    .appender("logfile")
                    .build(get_log_level(&settings.get::<String>("main.log_level")
-                                        .unwrap()
+                                        .unwrap_or_default()
                                         )
                           )
         )

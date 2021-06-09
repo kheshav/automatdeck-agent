@@ -24,13 +24,46 @@ struct Module{
     enabled_modules: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize,Default)]
 pub struct Settings {
     main: Main,
     security: Security,
     modules: Module,
 }
 
+impl Default for Main{
+    // Default for Main
+    fn default() -> Self {
+        Main{
+            url: String::from(""),
+            check_interval:300,
+            access_key:String::from(""),
+            secret_key:String::from(""),
+            log_dir:String::from("log"),
+            log_level:String::from("INFO")
+        }
+    }
+}
+
+impl Default for Security{
+    // Default for Security
+    fn default() -> Self {
+        Security{
+                enable_encryption: false,
+                key_path: String::from(""),
+        }
+    }
+}
+
+impl Default for Module{
+    // Default for Module
+    fn default() -> Self {
+        Module{
+            module_dir:String::from("modules/"),
+            enabled_modules: Vec::new(),
+        }
+    }
+}
 
 impl Settings{
 
