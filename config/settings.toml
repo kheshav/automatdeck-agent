@@ -1,0 +1,15 @@
+[main]
+url = "http://127.0.0.1" # Automatdeck entrypoint url
+check_interval = 300     # Check interval in seconds (default: 300)
+access_key = ""
+secret_key = ""
+log_dir = "log" # default: in folder named "log" where ad-agent is installed
+log_level = "DEBUG"  # Allowed values: INFO, WARN, DEBUG default: DEBUG
+
+[security]
+enable_encryption = false
+key_path = ""
+
+[modules]
+module_dir = ""
+enabled_modules = [] # Double quoted String separated by comma
