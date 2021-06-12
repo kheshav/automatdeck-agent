@@ -1,5 +1,6 @@
 use config::{Config, ConfigError, File};
 use serde::{Serialize, Deserialize};
+use std::process;
 
 
 #[derive(Debug,Serialize, Deserialize)]
@@ -69,7 +70,13 @@ impl Settings{
 
     pub fn new() -> Config{
         let mut s = Config::default();
-        s.merge(File::with_name("config/settings")).unwrap();
+        let x = s.merge(File::with_name("config/settings"));
+        if x.is_err(){
+            println!("Invalid Configuration in settings!");
+            process::exit(101);
+        }else{
+            x.unwrap();
+        }
         s
     }
     
