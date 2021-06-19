@@ -4,6 +4,8 @@ extern crate serde;
 use config::ConfigError;
 use core_lib::settings::Settings;
 use core_lib::httpclient;
+use core_lib::license;
+use core_lib::error;
 
 use std::time::Duration;
 use std::thread;
@@ -11,7 +13,8 @@ use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Appender, Config, Root};
-use std::process;
+use std::{process, fs, io::prelude::*};
+
 
 fn get_log_level(level: &str) -> LevelFilter{
     // Get the correct log level
@@ -25,6 +28,9 @@ fn get_log_level(level: &str) -> LevelFilter{
 
 fn bootstrap(settings: &config::Config){
     // check of required settings
+    
+    log::info!("Checking for prerequisits...");
+
     let mut error: bool = false; 
     
     if settings.get::<String>("main.access_key").unwrap().is_empty(){
@@ -41,11 +47,28 @@ fn bootstrap(settings: &config::Config){
     if error{
         process::exit(1);
     }
+
+    log::info!("Prerequisits checked [OK]");
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>>{
-    
+
+    // Error handling
+    let mut data = ::std::collections::HashMap::new();
+    data.insert("%NAME%", env!("CARGO_PKG_NAME"));
+    data.insert("%GITHUB%", env!("CARGO_PKG_REPOSITORY"));
+
+    error::create_hook(Some(data), |path, data| {
+        if let Some(path) = path {
+            let mut fs = fs::File::create(path)?;
+            fs.write_all(data.as_bytes())?;
+        }
+        Ok(())
+    });
+
+    //Settings configuration
+
     let settings = Settings::new();
     
 
@@ -77,7 +100,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     log::info!("Starting dd-agent application");
     let _s: Settings = serde_json::from_str(&_s).unwrap();
     log::debug!("Detected configurations: \n {:#?}", _s);
-    log::info!("Checking for new requests");
+
+    // Check for license validity
+    license::check_license().await;
 
     loop{
         //httpclient::test(String::from("/toto"));
@@ -91,9 +116,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
         }
         */
 
-        let query = httpclient::get("/ip").await;
+        //let query = httpclient::get("/license/").await;
         
         // Method 1
+        /*
         match query {
             Ok(response) => {
                                 if !response.status().is_success(){
@@ -104,6 +130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
                             },
             Err(_) => log::error!("Unable to retreive expected info from api"),
         };
+        */
         // End of Method 1
 
         /* Method 2

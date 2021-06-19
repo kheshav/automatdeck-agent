@@ -7,6 +7,7 @@ use std::process;
 struct Main {
     url: String,
     check_interval: u16,
+    email: String,
     access_key: String,
     secret_key: String,
     log_dir: String,
@@ -38,6 +39,7 @@ impl Default for Main{
         Main{
             url: String::from(""),
             check_interval:300,
+            email:String::from(""),
             access_key:String::from(""),
             secret_key:String::from(""),
             log_dir:String::from("log"),

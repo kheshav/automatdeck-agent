@@ -47,7 +47,13 @@ pub async fn get(uri: &str) -> Result<reqwest::Response,reqwest::Error>{
     let mut url = String::new();
     url.push_str(&settings.get::<String>("main.url").unwrap());
     url.push_str(&uri);
-    let response = reqwest::get(&url).await;
+    let client = reqwest::Client::new();
+    let response = client.get(&url)
+                    .header("email",settings.get::<String>("main.email").unwrap())
+                    .header("access-key",settings.get::<String>("main.access_key").unwrap())
+                    .header("secret-key",settings.get::<String>("main.secret_key").unwrap())
+                    .send()
+                    .await;
     if let Err(e) = response {
         if e.is_connect() {
             log::error!("Unable to connect to url: {}",&url);
@@ -56,8 +62,8 @@ pub async fn get(uri: &str) -> Result<reqwest::Response,reqwest::Error>{
         }
         if e.is_status(){
             println!("404");
-        }
-        return Err(e)
+        };
+        return Err(e);
     }
 
 
