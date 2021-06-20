@@ -1,4 +1,4 @@
-use std::{error::Error, panic::panic_any, process};
+use std::{panic::panic_any, process};
 use crate::httpclient;
 use serde::Deserialize;
 use std::collections::HashMap;

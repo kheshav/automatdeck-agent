@@ -12,6 +12,7 @@ struct Main {
     secret_key: String,
     log_dir: String,
     log_level: String,
+    max_thread: u16,
 }
 
 #[derive(Debug,Serialize, Deserialize)]
@@ -43,7 +44,8 @@ impl Default for Main{
             access_key:String::from(""),
             secret_key:String::from(""),
             log_dir:String::from("log"),
-            log_level:String::from("INFO")
+            log_level:String::from("INFO"),
+            max_thread: 4,
         }
     }
 }

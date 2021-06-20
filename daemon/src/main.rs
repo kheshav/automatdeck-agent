@@ -1,11 +1,7 @@
 extern crate config;
 extern crate serde;
 
-use config::ConfigError;
-use core_lib::settings::Settings;
-use core_lib::httpclient;
-use core_lib::license;
-use core_lib::error;
+use core_lib::{settings::Settings,license, error};
 
 use std::time::Duration;
 use std::thread;
@@ -14,6 +10,12 @@ use log4rs::append::file::FileAppender;
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Appender, Config, Root};
 use std::{process, fs, io::prelude::*};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time;
+use signal_hook::flag;
+use signal_hook::{consts::TERM_SIGNALS, consts::signal::*, iterator::Signals};
+
 
 
 fn get_log_level(level: &str) -> LevelFilter{
@@ -53,6 +55,7 @@ fn bootstrap(settings: &config::Config){
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>>{
+
 
     // Error handling
     let mut data = ::std::collections::HashMap::new();
@@ -104,6 +107,74 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     // Check for license validity
     license::check_license().await;
 
+    let term_now = Arc::new(AtomicBool::new(false));
+    for sig in TERM_SIGNALS {
+        // When terminated by a second term signal, exit with exit code 1.
+        // This will do nothing the first time (because term_now is false).
+        flag::register_conditional_shutdown(*sig, 1, Arc::clone(&term_now))?;
+        // But this will "arm" the above for the second time, by setting it to true.
+        // The order of registering these is important, if you put this one first, it will
+        // first arm and then terminate ‒ all in the first round.
+        flag::register(*sig, Arc::clone(&term_now))?;
+    }
+    let mut thread_count: i8 = 0;
+
+    // Our actual work thread
+    let t = thread::spawn(move || {
+        while !term_now.load(Ordering::Relaxed)
+        {
+            println!("Doing work...");
+            println!("OK");
+            log::debug!("Sleeping for {} seconds", settings.get::<String>("main.check_interval").unwrap());
+            thread::sleep(Duration::from_secs(settings.get::<u64>("main.check_interval").unwrap()));
+
+            // Check for new requests
+            // If new requests then spawn new threads (not execeeding MAX thread)
+            // Increment the thread_count variable for each thread created
+        }
+
+        println!("\nThread exiting...");
+    });
+
+    // Create iterator over signals
+    let mut signals = Signals::new(TERM_SIGNALS)?;
+
+    // This loop runs forever, and blocks until a kill signal is received
+    'outer: loop {
+        thread::sleep(Duration::from_secs(1));
+        for signal in signals.pending() {
+            thread::sleep(Duration::from_millis(100));
+            match signal {
+                SIGINT => {
+                    println!("\nGot SIGINT");
+                    log::warn!("Received SIGINT (Signal 1)");
+                    break 'outer;
+                },
+                SIGTERM => {
+                    println!("\nGot SIGTERM");
+                    log::warn!("Received SIGTERM (Signal 15)");
+                    break 'outer;
+                },
+                term_sig => {
+                    println!("\nGot {:?}", term_sig);
+                    log::warn!("Received SIGQUIT (Signal 3)");
+                    break 'outer;
+                },
+            }
+        }
+    }
+    // Wait for thread to exit
+    //t.join().unwrap();
+
+    // Cleanup code goes here
+    println!("\nReceived kill signal. Wait 10 seconds, or hit Ctrl+C again to exit immediately.");
+    thread::sleep(time::Duration::from_secs(10));
+    println!("Exited cleanly");
+    log::info!("Application shutdown..");
+    Ok(())
+
+
+    /*
     loop{
         //httpclient::test(String::from("/toto"));
         //let x  = httpclient::get(String::from("https://httpbin.orgq/ip")).await?;
@@ -142,5 +213,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
         log::debug!("Sleeping for {} seconds", settings.get::<String>("main.check_interval").unwrap());
         thread::sleep(Duration::from_secs(settings.get::<u64>("main.check_interval").unwrap()));
     }
+    */
 
 }

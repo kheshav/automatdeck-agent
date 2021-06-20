@@ -15,3 +15,4 @@ log = "0.4.14"
 log4rs = "1.0.0"
 core_lib = { path = "../core_lib"}
 tokio = { version = "1", features = ["full"] }
+signal-hook = "0.3.9"
