@@ -27,7 +27,7 @@ pub fn create_hook<F>(data: Option<HashMap<&'static str, &'static str>>, f:F)
                 let template = r#"
 Well, this is embarrassing...
 
-%NAME% had a problem and crashed. To help us diagnose the problem, you can send us a crash report.
+%NAME% had a problem and crashed. To help us diagnose the problem, you can send us a crash report along with related log file.
 
 We have generated a report file at "%PATH%". Submit an issue with the subject of "%NAME% Crash Report"
  and include the report as an attachment.
@@ -45,7 +45,7 @@ Thank you kindly!
 
                 let path = if text.contains("%PATH%") {
                     
-                    let tmp = env::temp_dir().join(format!("report-{}.log", ::uuid::Uuid::new_v4().to_hyphenated().to_string()));
+                    let tmp = env::temp_dir().join(format!("report-ad-agent-{}.log", ::uuid::Uuid::new_v4().to_hyphenated().to_string()));
                     text = text.replace("%PATH%", tmp.to_string_lossy().as_ref());
                     Some(tmp)
                 } else {
@@ -91,6 +91,8 @@ Thank you kindly!
 
                 payload.push_str(&format!("{:#?}\n", Backtrace::new()));
 
+                log::error!("\n{}",payload);
+                log::error!("{}",text);
                 f(path, payload).expect("Error generating report")
             }));
         }

@@ -1,6 +1,6 @@
 [main]
 url = "http://127.0.0.1:8000/agent-api/v1" # Automatdeck entrypoint url
-check_interval = 30    # Check interval in seconds (default: 300)
+check_interval = 5    # Check interval in seconds (default: 300)
 email = "kheshavsewnundun@gmail.com" # Email of the account
 access_key = "f9f4cdb010d449f481647c8e0ce0db58"
 secret_key = "8e60da5dea15489b9d4412f5906c93c7"

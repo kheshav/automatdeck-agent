@@ -15,7 +15,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time;
 use signal_hook::flag;
 use signal_hook::{consts::TERM_SIGNALS, consts::signal::*, iterator::Signals};
-
+pub mod initiator;
 
 
 fn get_log_level(level: &str) -> LevelFilter{
@@ -53,9 +53,9 @@ fn bootstrap(settings: &config::Config){
     log::info!("Prerequisits checked [OK]");
 }
 
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>>{
-
 
     // Error handling
     let mut data = ::std::collections::HashMap::new();
@@ -82,7 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S)} [{l}] - {m}\n")))
-        .build(settings.get::<String>("main.log_dir").unwrap() + "/output.log")
+        .build(settings.get::<String>("main.log_dir").unwrap_or_default() + "/output.log")
         .unwrap();
 
     let config = Config::builder()
@@ -117,8 +117,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
         // first arm and then terminate ‒ all in the first round.
         flag::register(*sig, Arc::clone(&term_now))?;
     }
-    let mut thread_count: i8 = 0;
 
+    tokio::spawn(async move { 
+        while !term_now.load(Ordering::Relaxed)
+        {
+            println!("Doing work...");
+            println!("OK");
+            log::debug!("Sleeping for {} seconds", settings.get::<String>("main.check_interval").unwrap());
+            thread::sleep(Duration::from_secs(settings.get::<u64>("main.check_interval").unwrap()));
+            
+            // Main actions related to business logic
+            initiator::initiate().await;
+        }
+
+        println!("\nThread exiting...");
+    });
+
+    /*
     // Our actual work thread
     let t = thread::spawn(move || {
         while !term_now.load(Ordering::Relaxed)
@@ -135,6 +150,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
 
         println!("\nThread exiting...");
     });
+    */
 
     // Create iterator over signals
     let mut signals = Signals::new(TERM_SIGNALS)?;
@@ -165,14 +181,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     }
     // Wait for thread to exit
     //t.join().unwrap();
-
     // Cleanup code goes here
     println!("\nReceived kill signal. Wait 10 seconds, or hit Ctrl+C again to exit immediately.");
     thread::sleep(time::Duration::from_secs(10));
     println!("Exited cleanly");
     log::info!("Application shutdown..");
     Ok(())
-
 
     /*
     loop{
