@@ -1,42 +1,33 @@
 use serde::Deserialize;
 use std::collections::HashMap;
 use crate::httpclient;
+use derive_getters::Getters;
 
-#[derive(Deserialize)]
-#[derive(Debug)]
+
+#[derive(Debug,Getters,Deserialize)]
 pub struct Request{
     status: String,
     message: Vec<RequestData>
 }
 
 
-#[derive(Deserialize)]
-#[derive(Debug)]
-struct Config{
+#[derive(Debug,Getters,Deserialize)]
+pub struct Config{
     title: String,
     config: String
 }
 
-#[derive(Deserialize)]
-#[derive(Debug)]
-struct  RequestData{
-   id: i32,
-   //config: Vec<Config>,
+#[derive(Debug,Getters,Deserialize)]
+pub struct  RequestData{
+   id: i64,
    config: HashMap<String, String>,
    status: String,
    meta: String,
 }
 
 
-/*
-#[derive(Debug)]
-pub struct Request{
-    requests: Vec<RequestData>
-}
-*/
 impl Request{
 
-    
     #[allow(dead_code)]
     pub async fn get_request() -> Result<Request, String>{
         // Check for new requests
@@ -61,12 +52,5 @@ impl Request{
         };
         return Err(String::from("Failed"));
     }
-
-    #[allow(dead_code)]
-    pub fn change_status(self){
-        println!("{}",self.status);
-
-    }
 }
-
 
