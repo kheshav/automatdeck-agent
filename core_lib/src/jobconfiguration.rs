@@ -20,3 +20,8 @@ pub struct Job{
     script: Vec<String>,
     after_script: Vec<String>,
 }
+
+#[allow(dead_code)]
+pub fn isValid(config: String) -> bool{
+    true
+}

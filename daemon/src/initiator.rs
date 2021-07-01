@@ -13,6 +13,7 @@ pub async fn initiate(){
     if let Ok(result) = request::Request::get_request().await{
         let x = result.message().iter();
         for request in x{
+            println!("{:?}",request.config());
             if thread_count >= max_thread{
                 log::warn!("Max thread reached skipping unprocessed request for later run");
                 break;

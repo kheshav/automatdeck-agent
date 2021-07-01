@@ -1,26 +1,21 @@
-use serde::Deserialize;
-use std::collections::HashMap;
+use serde::{Serialize,Deserialize};
 use crate::httpclient;
 use derive_getters::Getters;
 
 
-#[derive(Debug,Getters,Deserialize)]
+#[derive(Debug,Getters,Deserialize,Serialize)]
 pub struct Request{
     status: String,
     message: Vec<RequestData>
 }
 
 
-#[derive(Debug,Getters,Deserialize)]
-pub struct Config{
-    title: String,
-    config: String
-}
-
-#[derive(Debug,Getters,Deserialize)]
+#[derive(Debug,Getters,Deserialize,Serialize)]
 pub struct  RequestData{
    id: i64,
-   config: HashMap<String, String>,
+   config: String,
+   title: String,
+   valid: bool,
    status: String,
    meta: String,
 }
