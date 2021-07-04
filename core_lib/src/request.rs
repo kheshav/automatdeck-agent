@@ -3,14 +3,14 @@ use crate::httpclient;
 use derive_getters::Getters;
 
 
-#[derive(Debug,Getters,Deserialize,Serialize)]
+#[derive(Debug,Getters,Deserialize,Serialize,Clone)]
 pub struct Request{
     status: String,
     message: Vec<RequestData>
 }
 
 
-#[derive(Debug,Getters,Deserialize,Serialize)]
+#[derive(Debug,Getters,Deserialize,Serialize,Clone)]
 pub struct  RequestData{
    id: i64,
    config: String,
