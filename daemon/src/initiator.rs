@@ -32,17 +32,33 @@ pub async fn initiate(){
                 }
 
                 std::thread::spawn(move ||{
-                    println!("LOL {}",req.id());
+                    //println!("LOL {}",req.id());
                     //test().await;
-                    executor::run(test(req.id().to_owned()));
-                    println!("A child thread borrowing `var`: {:?}", req.id());
+                    //executor::run(test(req.id().to_owned()));
+                    //println!("A child thread borrowing `var`: {:?}", req.id());
                     log::info!("Processing request id: {}", req.id());
                     //let stages: jobconfiguration::Stages = serde_json::from_str("{\"stage\": [\"stage1\", \"stage2\", \"stage3\"]}").unwrap_or_default();
                     let stages: jobconfiguration::Stages = serde_json::from_str(req.config()).unwrap_or_default();
+                    /*
+                    let parse = json::parse(req.config()).unwrap();
+                    //println!("Parsed : {:?}",parse);
+                    //println!("KKKK {:?}",parse["job1"]);
+                    for x in parse.entries(){
+                        println!("Entries: {:?}",x.1);
+                        if x.0 != "stages"{
+                            //println!("{:?}",x.1.to_string());
+                            let y: jobconfiguration::Job = serde_json::from_str(&x.1.to_string()).unwrap();
+                            //let y: jobconfiguration::Job = serde_json::from_str("{\"stage\":\"stage2\",\"variables\":{\"HTTP_HOST\":\"http://127.0.0.1\",\"AGENT\":\"Firefox/1.2.3\"},\"script_execution_strategy\":\"solo\",\"allow_failure\":true,\"trigger_module\":false,\"timeout\":\"1h\",\"script_retry\":{\"retry\":true,\"max\":1,\"when\":\"script_failure\"},\"before_script\":[\"echo \\\"Executing job 2\\\"\"],\"script\":[\"mkdir -p  /tmp/test\",\"curl ${HTTP_HOST} -H \\\\\\\"Authorization:\\\\ Bearer ${token}\\\\\\\" -H \\\\\\\"Agent:\\\\ ${AGENT}\\\\\\\" -o /tmp/test/$(date +\\\\\\\"%Y_%m_%d_%I_%M_%p\\\\\\\").out\"],\"after_script\":[\"echo \\\"Script executed\\\"\"]}").unwrap();
+                            println!("{:?}",y);
+                        }
+
+                    }
+                    */
                     if stages.stages().len() == 0 {
                         log::error!("No stages defined in configuration used for request id: {}",req.id());
                     }
                     println!("{:?}",stages);
+                    jobconfiguration::build_stages(stages.stages(),req);
                 });
 
                /*
