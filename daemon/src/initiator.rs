@@ -1,10 +1,14 @@
 use core_lib::{settings::Settings,request,jobconfiguration};
-//use crossbeam_utils::thread;
 
 pub async fn test(id: i64){
     println!("AYnc called: {}",id);
 }
 
+pub async fn proceede(stages: Vec<jobconfiguration::Job>, req: request::RequestData){
+    // Proceede with the flow prepared by initiate
+    request::Request::set_status(request::RequestStatus::PROCESSING, req).await;
+
+}
 
 pub async fn initiate(){
     // Start main logic
@@ -17,9 +21,9 @@ pub async fn initiate(){
 
     if let Ok(result) = request::Request::get_request().await{
         let message = result.message().to_owned();
-//        thread::scope(|s| {
             for req in message{
                 log::debug!("Detected request id: {}",req.id());
+                #[cfg(debug_assertions)]
                 println!("{:?}",req.config());
                 if thread_count >= max_thread{
                     log::warn!("Max thread reached skipping unprocessed request for later run");
@@ -56,44 +60,17 @@ pub async fn initiate(){
                     */
                     if stages.stages().len() == 0 {
                         log::error!("No stages defined in configuration used for request id: {}",req.id());
+                    }else{
+                        #[cfg(debug_assertions)]
+                        println!("{:?}",stages);
+                        let jobs: Vec<jobconfiguration::Job> = jobconfiguration::build_stages(stages.stages(),req.to_owned());
+                        tokio::runtime::Runtime::new().unwrap().block_on(async move{
+                            proceede(jobs, req.to_owned()).await;
+                        });
                     }
-                    println!("{:?}",stages);
-                    jobconfiguration::build_stages(stages.stages(),req);
                 });
 
-               /*
-               tokio::spawn(async move{
-                    println!("LOL {}",req.id());
-                    //test().await;
-                    println!("A child thread borrowing `var`: {:?}", req.id());
-                    log::info!("Processing request id: {}", req.id());
-                    //let stages: jobconfiguration::Stages = serde_json::from_str("{\"stage\": [\"stage1\", \"stage2\", \"stage3\"]}").unwrap_or_default();
-                    let stages: jobconfiguration::Stages = serde_json::from_str(req.config()).unwrap_or_default();
-                    if stages.stages().len() == 0 {
-                        log::error!("No stages defined in configuration used for request id: {}",req.id());
-                    }
-                    println!("{:?}",stages);
-               });
-               */
-/*               
-                s.spawn(move |_|{
-                    println!("A child thread borrowing `var`: {:?}", req.id());
-                    log::info!("Processing request id: {}", req.id());
-                    //let stages: jobconfiguration::Stages = serde_json::from_str("{\"stage\": [\"stage1\", \"stage2\", \"stage3\"]}").unwrap_or_default();
-                    let stages: jobconfiguration::Stages = serde_json::from_str(req.config()).unwrap_or_default();
-                    if stages.stages().len() == 0 {
-                        log::error!("No stages defined in configuration used for request id: {}",req.id());
-                    }
-                    if *req.id() == 1 as i64 {
-                        println!("skippign 1");
-                    }
-                    println!("{:?}",stages);
-                });
-                
-
-*/
             }
-//        }).unwrap_or_default();
     }
 }
 

@@ -1,7 +1,7 @@
 extern crate config;
 extern crate serde;
 
-use core_lib::{settings::Settings,license, error};
+use core_lib::{settings::Settings, error};
 
 use std::time::Duration;
 use std::thread;
@@ -105,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     log::debug!("Detected configurations: \n {:#?}", _s);
 
     // Check for license validity
-    license::check_license().await;
+    //license::check_license().await;
 
     let term_now = Arc::new(AtomicBool::new(false));
     for sig in TERM_SIGNALS {
@@ -121,7 +121,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     tokio::spawn(async move { 
         while !term_now.load(Ordering::Relaxed)
         {
+
+            #[cfg(debug_assertions)]
             println!("Doing work...");
+            #[cfg(debug_assertions)]
             println!("OK");
             log::debug!("Sleeping for {} seconds", settings.get::<String>("main.check_interval").unwrap());
             thread::sleep(Duration::from_secs(settings.get::<u64>("main.check_interval").unwrap()));

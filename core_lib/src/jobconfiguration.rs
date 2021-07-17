@@ -2,7 +2,9 @@ use serde::{Deserialize,Serialize};
 use derive_getters::Getters;
 use derive_getters::Dissolve;
 use std::collections::HashMap;
+use crate::request::Request;
 use crate::request::RequestData;
+use crate::request::RequestStatus;
 use json;
 
 
@@ -156,6 +158,11 @@ impl Job{
         }
         self.before_script = final_scripts;
     }
+
+    #[allow(dead_code)]
+    pub fn run_command(self){
+
+    }
 }
 
 #[allow(dead_code)]
@@ -184,10 +191,15 @@ pub fn build_stages(stages: &Vec<String>, request: RequestData) -> Vec<Job>{
         }
     }
     if !valid_stages{
-        log::error!("Skipping request id: {}, since one or more defined stages are missing.", request.id());
+        log::error!("Skipping request id: {}, and marking it as failed since one or more defined stages are missing.", request.id());
         flow.clear();
+        tokio::runtime::Runtime::new().unwrap().block_on(async {
+            Request::set_status(RequestStatus::WARNING, request.to_owned()).await;
+        });
     }
+    #[cfg(debug_assertions)]
     println!("Stages Valid: {}",valid_stages);
+    #[cfg(debug_assertions)]
     println!("Flow: {:?}", flow);
     return flow;
 }
