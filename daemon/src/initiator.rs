@@ -4,9 +4,13 @@ pub async fn test(id: i64){
     println!("AYnc called: {}",id);
 }
 
-pub async fn proceede(stages: Vec<jobconfiguration::Job>, req: request::RequestData){
+pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestData){
     // Proceede with the flow prepared by initiate
-    request::Request::set_status(request::RequestStatus::PROCESSING, req).await;
+   if request::Request::set_status(request::RequestStatus::PROCESSING, req.to_owned()).await{
+        // was able to set the status
+   }else{
+        log::error!("Unable to set status for request: {}, hence skipping this request for later",req.id());
+   }
 
 }
 

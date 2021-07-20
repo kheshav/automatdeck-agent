@@ -171,6 +171,7 @@ pub fn build_stages(stages: &Vec<String>, request: RequestData) -> Vec<Job>{
     let mut flow: Vec<Job> = Vec::new();
     let parsed_config = json::parse(request.config()).unwrap();
     let mut valid_stages: bool = false;
+    let mut stages_to_create: Vec<String> = Vec::new();
     for stage in stages.iter(){
         valid_stages = false;
         log::debug!("Stage detected :{:?} in request id {}",stage,request.id());
@@ -184,6 +185,7 @@ pub fn build_stages(stages: &Vec<String>, request: RequestData) -> Vec<Job>{
                     valid_stages = true;
                     job.prepare_commands();
                     flow.push(job);
+                    stages_to_create.push(stage.to_string());
                     break;
                 }
             }
@@ -201,5 +203,26 @@ pub fn build_stages(stages: &Vec<String>, request: RequestData) -> Vec<Job>{
     println!("Stages Valid: {}",valid_stages);
     #[cfg(debug_assertions)]
     println!("Flow: {:?}", flow);
+    tokio::runtime::Runtime::new().unwrap().block_on(async{
+        create_stages(&stages_to_create).await;
+    });
     return flow;
+}
+
+#[allow(dead_code)]
+async fn create_stages(stages: &Vec<String>){
+    // Create stages on server
+    // if stage cannot or wasnot created when stage will run will create it on server
+    if ! stages.is_empty(){
+        let mut data: String = "".to_string();
+        let size: usize = stages.len();
+        let mut count: usize = 0;
+        for stage in stages.iter(){
+            count += 1;
+            data.push_str(&stage);
+            if count != size{
+                data.push_str(",");
+            }
+        }
+    }
 }
