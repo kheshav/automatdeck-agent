@@ -42,6 +42,16 @@ impl RequestStatus{
             RequestStatus::WARNING => "W"
         }
     }
+
+    #[allow(dead_code)]
+    fn value_real(&self) -> &str{
+        match *self{
+            RequestStatus::PROCESSING => "PROCESSING",
+            RequestStatus::COMPLETED => "COMPLETED",
+            RequestStatus::FAILED => "FAILED",
+            RequestStatus::WARNING => "WARNING"
+        }
+    }
 }
 
 
@@ -74,7 +84,7 @@ impl Request{
 
     pub async fn set_status(status: RequestStatus,req: RequestData) -> bool{
         // Set the status of the request 
-        log::debug!("Updating Status of request id: {} to {}", req.id(), status.value());
+        log::debug!("Updating Status of request id: {} to {}", req.id(), status.value_real());
         let mut uri = "/requests/".to_string();
         uri.push_str(&req.id().to_string());
         uri.push_str("/");
@@ -85,6 +95,7 @@ impl Request{
             Ok(response) => {
                 match response.error_for_status(){
                     Ok(_) => {
+                        log::debug!("Updated status of request id: {} to {}",req.id(), status.value_real());
                         return true;
                     },
                     Err(_) => {

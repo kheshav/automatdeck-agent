@@ -2,6 +2,7 @@ use serde::{Deserialize,Serialize};
 use derive_getters::Getters;
 use derive_getters::Dissolve;
 use std::collections::HashMap;
+use crate::httpclient;
 use crate::request::Request;
 use crate::request::RequestData;
 use crate::request::RequestStatus;
@@ -204,24 +205,45 @@ pub fn build_stages(stages: &Vec<String>, request: RequestData) -> Vec<Job>{
     #[cfg(debug_assertions)]
     println!("Flow: {:?}", flow);
     tokio::runtime::Runtime::new().unwrap().block_on(async{
-        create_stages(&stages_to_create).await;
+        create_stages(&stages_to_create,request.id().to_owned()).await;
     });
     return flow;
 }
 
 #[allow(dead_code)]
-async fn create_stages(stages: &Vec<String>){
+async fn create_stages(stages: &Vec<String>,reqid: i64){
     // Create stages on server
     // if stage cannot or wasnot created when stage will run will create it on server
     if ! stages.is_empty(){
-        let mut data: String = "".to_string();
+        let mut stage_data: String = "".to_string();
         let size: usize = stages.len();
         let mut count: usize = 0;
         for stage in stages.iter(){
             count += 1;
-            data.push_str(&stage);
+            stage_data.push_str(&stage);
             if count != size{
-                data.push_str(",");
+                stage_data.push_str(",");
+            }
+        }
+        let reqid_string = reqid.to_string();
+        let mut payload = HashMap::new();
+        payload.insert("stages",stage_data.as_str());
+        payload.insert("request_id",&reqid_string);
+        log::debug!("Creating initial stages for request: {}",reqid);
+        let create_stage_query = httpclient::post("/job/", payload).await;
+        match create_stage_query {
+            Ok(response) => {
+                match response.error_for_status(){
+                    Ok(_) => {
+                        log::debug!("Initial stage(s) successfully created for request: {}",reqid);
+                    }
+                    Err(_) =>{
+                        log::warn!("Unable to create initial stage(s) for request: {}",reqid);
+                    }
+                }
+            }
+            Err(_) =>{
+                log::error!("Unable to create initial stage(s) for request: {}",reqid);
             }
         }
     }
