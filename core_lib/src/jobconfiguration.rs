@@ -7,6 +7,10 @@ use crate::request::Request;
 use crate::request::RequestData;
 use crate::request::RequestStatus;
 use json;
+use std::env;
+use os_pipe::pipe;
+use std::io::prelude::*;
+use std::process::Command;
 
 
 #[derive(Debug,Getters,Serialize,Deserialize)]
@@ -15,7 +19,7 @@ pub struct Stages{
 }
 
 
-#[derive(Debug,Getters,Serialize,Deserialize,Dissolve)]
+#[derive(Debug,Getters,Serialize,Deserialize,Dissolve,Clone)]
 #[allow(dead_code)]
 pub struct ScriptRetry{
     #[serde(default)]
@@ -28,8 +32,10 @@ pub struct ScriptRetry{
 
 
 #[allow(dead_code)]
-#[derive(Debug,Getters,Serialize,Deserialize)]
+#[derive(Debug,Getters,Serialize,Deserialize,Clone)]
 pub struct Job{
+    #[serde(default = "default_reqid")]
+    reqid: i64, // no in json to be used as ref for the corresponding rquest id
     stage: String,
     #[serde(default = "default_variables")]
     variables: HashMap<String,String>,
@@ -50,6 +56,9 @@ pub struct Job{
     after_script: Vec<String>,
 }
 
+fn default_reqid() -> i64{
+    0
+}
 
 fn default_scripts() -> Vec<String>{
     Vec::new()
@@ -77,12 +86,6 @@ fn default_variables() -> HashMap<String,String> {
     variables
 }
 
-impl Stages {
-    #[allow(dead_code)]
-    pub fn execute(self){
-
-    }
-}
 
 impl Default for Stages{
     // Default for Stages
@@ -105,6 +108,30 @@ impl Default for ScriptRetry{
 
 
 impl Job{
+
+    fn replace_templatevariable(&mut self, command: &mut String){
+        // Replace script variables by template variables
+
+        for (variable, value) in self.variables.to_owned(){
+            let _script = command.to_owned();
+            let mut to_replace = "${".to_string();
+            to_replace.push_str(&variable);
+            to_replace.push_str("}");
+            *command = _script.replace(&to_replace,&value);
+        }
+
+    }
+
+    fn replace_sysvariable(&mut self,command: &mut String){
+        // Replace scripts variables by sys variables   
+        for (sys_variable, sys_value) in env::vars(){
+            let _command = command.to_owned();
+            let mut to_replace = "${".to_string();
+            to_replace.push_str(&sys_variable);
+            to_replace.push_str("}");
+            *command = _command.replace(&to_replace, &sys_value);
+        }
+    }
     
     fn prepare_commands(&mut self){
         // Prepare command; replacing defined variables
@@ -113,15 +140,10 @@ impl Job{
 
         // For Script
         let mut final_scripts: Vec<String> = Vec::new();
-        for script in &self.script{
-            //println!("Script: {}",script);
+        for script in self.script.to_owned(){
             let mut _script: String = script.to_owned();
-            for (variable, value) in self.variables.to_owned(){
-                let mut to_replace = "${".to_string();
-                to_replace.push_str(&variable);
-                to_replace.push_str("}");
-                _script = _script.replace(&to_replace,&value);
-            }
+            self.replace_templatevariable(&mut _script);
+            self.replace_sysvariable(&mut _script);
             _script = _script.replace("\\","");
             final_scripts.push(_script);
         }
@@ -129,15 +151,10 @@ impl Job{
 
         // For After Script
         let mut final_scripts: Vec<String> = Vec::new();
-        for script in &self.after_script{
-            //println!("Script: {}",script);
+        for script in self.after_script.to_owned(){
             let mut _script: String = script.to_owned();
-            for (variable, value) in self.variables.to_owned(){
-                let mut to_replace = "${".to_string();
-                to_replace.push_str(&variable);
-                to_replace.push_str("}");
-                _script = _script.replace(&to_replace,&value);
-            }
+            self.replace_templatevariable(&mut _script);
+            self.replace_sysvariable(&mut _script);
             _script = _script.replace("\\","");
             final_scripts.push(_script);
         }
@@ -145,15 +162,10 @@ impl Job{
 
         // For Before Script
         let mut final_scripts: Vec<String> = Vec::new();
-        for script in &self.before_script{
-            //println!("Script: {}",script);
+        for script in self.before_script.to_owned(){
             let mut _script: String = script.to_owned();
-            for (variable, value) in self.variables.to_owned(){
-                let mut to_replace = "${".to_string();
-                to_replace.push_str(&variable);
-                to_replace.push_str("}");
-                _script = _script.replace(&to_replace,&value);
-            }
+            self.replace_templatevariable(&mut _script);
+            self.replace_sysvariable(&mut _script);
             _script = _script.replace("\\","");
             final_scripts.push(_script);
         }
@@ -161,8 +173,103 @@ impl Job{
     }
 
     #[allow(dead_code)]
-    pub fn run_command(self){
+    fn prepare_inherit_command(&self) -> String{
+        return "".to_string();
+    }
 
+
+    #[allow(dead_code)]
+    fn execute_commands(&self,command: String) -> bool{
+        // Generic executor of command
+
+        if command.is_empty(){
+            return true;
+        }
+        let (shell, flag) = if cfg!(windows) { ("cmd.exe", "/C") } else { ("sh", "-c") };
+        let mut child = Command::new(shell);
+        child.arg(flag);
+        child.arg(command.to_owned());
+
+        // Here's the interesting part. Open a pipe, copy its write end, and
+        // give both copies to the child.
+        let (mut reader, writer) = pipe().unwrap();
+        let writer_clone = writer.try_clone().unwrap();
+        child.stdout(writer);
+        child.stderr(writer_clone);
+
+        // Now start the child running.
+        //let mut handle = child.spawn().unwrap();
+        let handle = child.status().unwrap();
+
+        // Very important when using pipes: This parent process is still
+        // holding its copies of the write ends, and we have to close them
+        // before we read, otherwise the read end will never report EOF. The
+        // Command object owns the writers now, and dropping it closes them.
+        #[cfg(debug_assertions)]
+        println!("Command {} handle: {:?}",command.to_owned(),handle);
+        
+        drop(child);
+
+        // Finally we can read all the output and clean up the child.
+        let mut output = String::new();
+        reader.read_to_string(&mut output).unwrap();
+        #[cfg(debug_assertions)]
+        println!("Output of command {} : \n {}",command.to_owned(),output);
+        //handle.wait().unwrap();
+        return handle.success();
+    }
+
+    #[allow(dead_code)]
+    fn run_before_command(self) -> bool{
+        // Run before script
+
+        if self.before_script.len() == 0 {
+            return true;
+        }
+        let mut count = 0;
+        if self.script_execution_strategy.eq(&"inherit"){
+            let mut result: bool = self.execute_commands(self.prepare_inherit_command());
+            if self.script_retry.retry{
+                while !result {
+                    count += 1;
+                    if count <= self.script_retry.max{
+                        log::warn!("Before_script for request: {} failed, retrying command..",self.reqid());
+                        result = self.execute_commands(self.prepare_inherit_command());
+                    }
+                }
+                return result;
+            }
+            return result;
+            
+        }else{
+            // Solo strategy
+            let mut result: bool = false;
+            for command in self.before_script.to_owned(){
+                result = self.execute_commands(command.to_owned());
+                if self.script_retry.retry{
+                    while !result {
+                        count += 1;
+                        if count <= self.script_retry.max{
+                            log::warn!("Before_script for request: {} failed, retrying command..",self.reqid());
+                            result = self.execute_commands(command.to_owned());
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+    }
+
+    #[allow(dead_code)]
+    fn run_after_command(self) -> bool{
+        // Run after script
+        return true;
+    }
+
+    #[allow(dead_code)]
+    pub fn run_main_command(self) -> bool{
+        // Run script
+        return true;
     }
 }
 
@@ -180,6 +287,7 @@ pub fn build_stages(stages: &Vec<String>, request: RequestData) -> Vec<Job>{
         for conf in parsed_config.entries(){
             if conf.0 != "stages"{
                 let mut job: Job = serde_json::from_str(&conf.1.to_string()).unwrap();
+                job.reqid = request.id().to_owned();
     //            let mut job: Job = serde_json::from_str("{\"stage\":\"stage2\",\"script_execution_strategy\":\"solo\",\"trigger_module\":false,\"timeout\":\"1h\",\"script\":[\"mkdir -p  /tmp/test\",\"curl ${HTTP_HOST} -H \\\\\\\"Authorization:\\\\ Bearer ${token}\\\\\\\" -H \\\\\\\"Agent:\\\\ ${AGENT}\\\\\\\" -o /tmp/test/$(date +\\\\\\\"%Y_%m_%d_%I_%M_%p\\\\\\\").out\"],\"after_script\":[\"echo \\\"Script executed\\\"\"]}").unwrap();
                 //println!("stage: {} , job.stage: {}",stage,job.stage);
                 if stage.to_owned() == job.stage{
