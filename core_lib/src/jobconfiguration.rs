@@ -12,6 +12,21 @@ use os_pipe::pipe;
 use std::io::prelude::*;
 use std::process::Command;
 
+#[derive(Debug)]
+pub enum JobStatus{
+    PENDING,
+    RUNNING,
+    FAILED,
+    IGNORED,
+    SUCCESS,
+}
+
+#[derive(Debug)]
+pub enum ScriptType{
+    BEFORE,
+    AFTER,
+    SCRIPT,
+}
 
 #[derive(Debug,Getters,Serialize,Deserialize)]
 pub struct Stages{
@@ -86,6 +101,30 @@ fn default_variables() -> HashMap<String,String> {
     variables
 }
 
+impl JobStatus{
+
+    #[allow(dead_code)]
+    fn value(&self) -> &str{
+        match *self{
+            JobStatus::PENDING => "P",
+            JobStatus::RUNNING => "R",
+            JobStatus::FAILED => "F",
+            JobStatus::IGNORED => "I",
+            JobStatus::SUCCESS => "S"
+        }
+    }
+
+    #[allow(dead_code)]
+    fn value_real(&self) -> &str{
+        match *self{
+            JobStatus::PENDING => "PENDING",
+            JobStatus::RUNNING => "RUNNING",
+            JobStatus::FAILED => "FAILED",
+            JobStatus::IGNORED => "IGNORED",
+            JobStatus::SUCCESS => "SUCCESS"
+        }
+    }
+}
 
 impl Default for Stages{
     // Default for Stages
@@ -108,6 +147,27 @@ impl Default for ScriptRetry{
 
 
 impl Job{
+
+    #[allow(dead_code)]
+    pub async fn set_status(self, status: JobStatus){
+        // Set status of the job
+        log::debug!("Setting status of requestid: {}, job: {} to {}", self.reqid,self.stage, status.value_real());
+        let uri = "/job/unknown/".to_string();
+        let mut data = HashMap::new();
+
+        let mut toupdate: String = "".to_string();
+        toupdate.push_str("{\"status\":");
+        toupdate.push_str("\"");
+        toupdate.push_str(&status.value());
+        toupdate.push_str("\"}");
+
+        let _reqid = self.reqid.to_string().to_owned();
+        data.insert("requestid", _reqid.as_str());
+        data.insert("stage", &self.stage);
+        data.insert("toupdate", &toupdate);
+
+        let query = httpclient::patch(&uri, data).await;
+    }
 
     fn replace_templatevariable(&mut self, command: &mut String){
         // Replace script variables by template variables
@@ -173,8 +233,33 @@ impl Job{
     }
 
     #[allow(dead_code)]
-    fn prepare_inherit_command(&self) -> String{
-        return "".to_string();
+    fn prepare_inherit_command(&self, script_type:ScriptType) -> String{
+        // Prepare inherit commands
+        #[allow(unused_assignments)]
+        let mut scripts : Vec<String> = Vec::new();
+        match script_type{
+            ScriptType::AFTER => {
+                scripts = self.after_script.to_owned();
+            },
+            ScriptType::BEFORE => {
+                scripts = self.before_script.to_owned();
+            },
+            ScriptType::SCRIPT => {
+                scripts = self.script.to_owned();
+            }
+        }
+        let mut count: i8 = 0;
+        let mut final_scripts: String = "".to_string();
+        for script in scripts{
+            if count > 0{
+                final_scripts.push_str("&&");
+                final_scripts.push_str(&script);
+            } else {
+                final_scripts.push_str(&script);
+            }
+            count += 1;
+        }
+        return final_scripts;
     }
 
 
@@ -220,7 +305,7 @@ impl Job{
     }
 
     #[allow(dead_code)]
-    fn run_before_command(self) -> bool{
+    pub fn run_before_command(self) -> bool{
         // Run before script
 
         if self.before_script.len() == 0 {
@@ -228,16 +313,15 @@ impl Job{
         }
         let mut count = 0;
         if self.script_execution_strategy.eq(&"inherit"){
-            let mut result: bool = self.execute_commands(self.prepare_inherit_command());
+            let mut result: bool = self.execute_commands(self.prepare_inherit_command(ScriptType::BEFORE));
             if self.script_retry.retry{
                 while !result {
                     count += 1;
                     if count <= self.script_retry.max{
                         log::warn!("Before_script for request: {} failed, retrying command..",self.reqid());
-                        result = self.execute_commands(self.prepare_inherit_command());
+                        result = self.execute_commands(self.prepare_inherit_command(ScriptType::BEFORE));
                     }
                 }
-                return result;
             }
             return result;
             

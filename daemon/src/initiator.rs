@@ -1,4 +1,4 @@
-use core_lib::{settings::Settings,request,jobconfiguration};
+use core_lib::{jobconfiguration::{self, JobStatus}, request, settings::Settings};
 
 pub async fn test(id: i64){
     println!("AYnc called: {}",id);
@@ -8,6 +8,13 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
     // Proceede with the flow prepared by initiate
    if request::Request::set_status(request::RequestStatus::PROCESSING, req.to_owned()).await{
         // was able to set the status
+        for job in jobs{
+            let _job = job.to_owned();
+            job.to_owned().set_status(JobStatus::RUNNING).await;
+            if job.run_before_command(){
+                println!("Executed before_script successfully");
+            }
+        }
    }else{
         log::error!("Unable to set status for request: {}, hence skipping this request for later",req.id());
    }
