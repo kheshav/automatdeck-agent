@@ -4,19 +4,23 @@ pub async fn test(id: i64){
     println!("AYnc called: {}",id);
 }
 
-pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestData){
+pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestData) -> Result<(),Box<dyn std::error::Error>>{
     // Proceede with the flow prepared by initiate
    if request::Request::set_status(request::RequestStatus::PROCESSING, req.to_owned()).await{
         // was able to set the status
         for job in jobs{
             let _job = job.to_owned();
             job.to_owned().set_status(JobStatus::RUNNING).await;
-            if job.run_before_command(){
-                println!("Executed before_script successfully");
+            let before_script = job.run_before_command().await?;
+            if before_script{
+                        println!("Executed before_script successfully");
             }
+            
         }
+        Ok(())
    }else{
         log::error!("Unable to set status for request: {}, hence skipping this request for later",req.id());
+        Ok(())
    }
 
 }
@@ -76,7 +80,8 @@ pub async fn initiate(){
                         println!("{:?}",stages);
                         let jobs: Vec<jobconfiguration::Job> = jobconfiguration::build_stages(stages.stages(),req.to_owned());
                         tokio::runtime::Runtime::new().unwrap().block_on(async move{
-                            proceede(jobs, req.to_owned()).await;
+                            #[allow(unused_variables)]
+                            let x = proceede(jobs, req.to_owned()).await;
                         });
                     }
                 });

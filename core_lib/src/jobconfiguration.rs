@@ -149,6 +149,35 @@ impl Default for ScriptRetry{
 impl Job{
 
     #[allow(dead_code)]
+    pub async fn set_feedback(self, feedback: String){
+        // Set feedback for a job
+        let uri: String = "/job/unknown/".to_string();
+        let mut data = HashMap::new();
+
+        let mut toupdate: String = "".to_string();
+        toupdate.push_str("{\"feedback\":");
+        toupdate.push_str("\"");
+        toupdate.push_str(&feedback);
+        toupdate.push_str("\"}");
+
+        let _reqid = self.reqid.to_string().to_owned();
+        data.insert("requestid", _reqid.as_str());
+        data.insert("stage", &self.stage);
+        data.insert("toupdate", &toupdate);
+
+        let query = httpclient::patch(&uri, data).await;
+        match query {
+            Ok(response) => {
+                match response.error_for_status(){
+                    Ok(_) => log::info!("Successfully updated feedback of requestid: {}, job: {}", self.reqid,self.stage),
+                    Err(_) => log::error!("Unable to set feedback of requestid: {}, job: {} \nbut ignoring error and executing job command.", self.reqid, self.stage),
+                }
+            },
+            Err(_) => log::error!("Unable to set feedback of requestid: {}, job: {} \nbut ignoring error and executing job command.", self.reqid, self.stage),
+        }
+    }
+
+    #[allow(dead_code)]
     pub async fn set_status(self, status: JobStatus){
         // Set status of the job
         log::debug!("Setting status of requestid: {}, job: {} to {}", self.reqid,self.stage, status.value_real());
@@ -167,6 +196,15 @@ impl Job{
         data.insert("toupdate", &toupdate);
 
         let query = httpclient::patch(&uri, data).await;
+        match query {
+            Ok(response) => {
+                match response.error_for_status(){
+                    Ok(_) =>log::info!("Successfully set status of requestid: {}, job: {} to {}", self.reqid,self.stage, status.value_real()),
+                    Err(_) => log::error!("Unable to set status of requestid: {}, job: {} to {} \nbut ignoring error and executing job.", self.reqid, self.stage, status.value_real()),
+                }
+            },
+            Err(_) => log::error!("Unable to set status of requestid: {}, job: {} to {} \nbut ignoring error and executing job.", self.reqid, self.stage, status.value_real()),
+        }
     }
 
     fn replace_templatevariable(&mut self, command: &mut String){
@@ -264,11 +302,15 @@ impl Job{
 
 
     #[allow(dead_code)]
-    fn execute_commands(&self,command: String) -> bool{
+    async fn execute_commands(&self,command: String) -> Result<bool, Box<dyn std::error::Error>>{
         // Generic executor of command
+        let mut  _command = command.to_owned();
+        _command = _command.replace("\"","\\\"");
+        self.clone().set_feedback(_command.to_owned()).await;
 
         if command.is_empty(){
-            return true;
+            return Ok(true)
+            //return true;
         }
         let (shell, flag) = if cfg!(windows) { ("cmd.exe", "/C") } else { ("sh", "-c") };
         let mut child = Command::new(shell);
@@ -301,18 +343,24 @@ impl Job{
         #[cfg(debug_assertions)]
         println!("Output of command {} : \n {}",command.to_owned(),output);
         //handle.wait().unwrap();
-        return handle.success();
+        //return handle.success();
+        Ok(handle.success())
     }
 
     #[allow(dead_code)]
-    pub fn run_before_command(self) -> bool{
+    pub async fn run_before_command(&self) -> Result<bool, Box<dyn std::error::Error>>{
         // Run before script
+        self.clone().set_feedback("Executing before script".to_string()).await;
+        //executor::run(self.to_owned().set_feedback("".to_string()));
+
 
         if self.before_script.len() == 0 {
-            return true;
+            return Ok(true)
+            //return true;
         }
         let mut count = 0;
         if self.script_execution_strategy.eq(&"inherit"){
+            /*
             let mut result: bool = self.execute_commands(self.prepare_inherit_command(ScriptType::BEFORE));
             if self.script_retry.retry{
                 while !result {
@@ -323,24 +371,36 @@ impl Job{
                     }
                 }
             }
-            return result;
+            */
+            let mut result = self.execute_commands(self.prepare_inherit_command(ScriptType::BEFORE)).await?;
+            if self.script_retry.retry{
+                while !result{
+                    count += 1;
+                    log::warn!("Before_script for request: {} failed, retrying command..",self.reqid());
+                    result = self.execute_commands(self.prepare_inherit_command(ScriptType::BEFORE)).await?;            
+
+                }
+            }
+            //return result;
+            Ok(result)
             
         }else{
             // Solo strategy
             let mut result: bool = false;
             for command in self.before_script.to_owned(){
-                result = self.execute_commands(command.to_owned());
+                result = self.execute_commands(command.to_owned()).await?;
                 if self.script_retry.retry{
                     while !result {
                         count += 1;
                         if count <= self.script_retry.max{
                             log::warn!("Before_script for request: {} failed, retrying command..",self.reqid());
-                            result = self.execute_commands(command.to_owned());
+                            result = self.execute_commands(command.to_owned()).await?;
                         }
                     }
                 }
             }
-            return result;
+            //return result;
+            Ok(result)
         }
     }
 
