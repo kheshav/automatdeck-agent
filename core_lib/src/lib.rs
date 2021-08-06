@@ -5,3 +5,4 @@ pub mod error;
 pub mod request;
 pub mod jobconfiguration;
 pub mod tests;
+pub mod feedback;

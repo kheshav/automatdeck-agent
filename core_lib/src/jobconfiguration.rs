@@ -2,7 +2,7 @@ use serde::{Deserialize,Serialize};
 use derive_getters::Getters;
 use derive_getters::Dissolve;
 use std::collections::HashMap;
-use crate::httpclient;
+use crate::{httpclient,feedback};
 use crate::request::Request;
 use crate::request::RequestData;
 use crate::request::RequestStatus;
@@ -149,7 +149,7 @@ impl Default for ScriptRetry{
 impl Job{
 
     #[allow(dead_code)]
-    pub async fn set_feedback(self, feedback: String){
+    pub async fn set_feedback(self, feedback: String, feedback_type:feedback::FeedbackType){
         // Set feedback for a job
         let uri: String = "/job/unknown/".to_string();
         let mut data = HashMap::new();
@@ -157,7 +157,8 @@ impl Job{
         let mut toupdate: String = "".to_string();
         toupdate.push_str("{\"feedback\":");
         toupdate.push_str("\"");
-        toupdate.push_str(&feedback);
+        //toupdate.push_str(&feedback);
+        toupdate.push_str(&feedback::format(feedback, feedback_type));
         toupdate.push_str("\"}");
 
         let _reqid = self.reqid.to_string().to_owned();
@@ -306,7 +307,7 @@ impl Job{
         // Generic executor of command
         let mut  _command = command.to_owned();
         _command = _command.replace("\"","\\\"");
-        self.clone().set_feedback(_command.to_owned()).await;
+        self.clone().set_feedback(_command.to_owned(), feedback::FeedbackType::COMMAND).await;
 
         if command.is_empty(){
             return Ok(true)
@@ -342,6 +343,9 @@ impl Job{
         reader.read_to_string(&mut output).unwrap();
         #[cfg(debug_assertions)]
         println!("Output of command {} : \n {}",command.to_owned(),output);
+
+        //TODO: Add condition to format feedback based on success or error
+        //self.clone().set_feedback(output).await;
         //handle.wait().unwrap();
         //return handle.success();
         Ok(handle.success())
@@ -350,7 +354,7 @@ impl Job{
     #[allow(dead_code)]
     pub async fn run_before_command(&self) -> Result<bool, Box<dyn std::error::Error>>{
         // Run before script
-        self.clone().set_feedback("Executing before script".to_string()).await;
+        self.clone().set_feedback("Executing before script".to_string(), feedback::FeedbackType::STEP).await;
         //executor::run(self.to_owned().set_feedback("".to_string()));
 
 
