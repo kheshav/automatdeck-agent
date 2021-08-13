@@ -13,3 +13,9 @@ fn encrypt_decrypt(){
     let decrypt = encryption::decrypt(encryptdata.to_owned());
     assert_eq!("",decrypt);
 }
+
+#[test]
+fn sign_unsign(){
+    let signdata = encryption::sign("uU0nuZNNPgilLlLX2n2r+sSE7+N6U4DukIj3rOLvzek=".to_string());
+    assert_eq!(encryption::verify("uU0nuZNNPgilLlLX2n2r+sSE7+N6U4DukIj3rOLvzek=".to_string(), signdata),true);
+}
