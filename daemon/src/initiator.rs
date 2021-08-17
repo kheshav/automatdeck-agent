@@ -1,4 +1,4 @@
-use core_lib::{jobconfiguration::{self, JobStatus}, request, settings::Settings};
+use core_lib::{jobconfiguration::{self, JobStatus}, request::{self, Request}, settings::Settings, feedback};
 
 pub async fn test(id: i64){
     println!("AYnc called: {}",id);
@@ -8,12 +8,29 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
     // Proceede with the flow prepared by initiate
    if request::Request::set_status(request::RequestStatus::PROCESSING, req.to_owned()).await{
         // was able to set the status
+        let mut jobfailed: bool = false;
         for job in jobs{
+            // If previous job has failed so mark other sucessive jobs as IGNORED
+            if jobfailed{
+                job.to_owned().set_status(JobStatus::IGNORED).await;
+                break;
+            }
             let _job = job.to_owned();
             job.to_owned().set_status(JobStatus::RUNNING).await;
             let before_script = job.run_before_command().await?;
-            if before_script{
-                        println!("Executed before_script successfully");
+            if !before_script{
+                if !job.to_owned().allow_failure(){
+                    // Job failed and no allow_failure
+                    #[cfg(debug_assertions)]
+                    println!("Stopping request {} since stage: {} failed",req.id(),job.to_owned().stage());
+
+                    log::error!("Stopping request {} since stage: {} failed",req.id(),job.to_owned().stage());
+                    job.to_owned().set_status(JobStatus::FAILED).await;
+                    job.set_feedback("Job Failed".to_string(),feedback::FeedbackType::ERROR).await;
+                    Request::set_status(request::RequestStatus::FAILED, req.to_owned()).await;
+                    jobfailed = true;
+                    continue;
+                }
             }
             
         }

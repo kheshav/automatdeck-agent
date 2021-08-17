@@ -62,7 +62,7 @@ pub struct Job{
     trigger_module: bool,
     #[serde(default = "default_timeout")]
     timeout: String,
-    #[serde(flatten)]
+    //#[serde(flatten)]
     script_retry: ScriptRetry,
     #[serde(default = "default_scripts")]
     before_script: Vec<String>,
@@ -344,10 +344,16 @@ impl Job{
         #[cfg(debug_assertions)]
         println!("Output of command {} : \n {}",command.to_owned(),output);
 
-        //TODO: Add condition to format feedback based on success or error
         //self.clone().set_feedback(output).await;
         //handle.wait().unwrap();
         //return handle.success();
+        if !handle.success(){
+            self.clone().set_feedback(output.trim_end().to_string(), feedback::FeedbackType::ERROR).await;
+            self.clone().set_feedback(handle.to_string(), feedback::FeedbackType::ERROR).await;
+        }else{
+            self.clone().set_feedback(output.trim_end().to_string(), feedback::FeedbackType::OUTPUT).await;
+            self.clone().set_feedback(handle.to_string(), feedback::FeedbackType::OUTPUT).await;
+        }
         Ok(handle.success())
     }
 
@@ -381,7 +387,11 @@ impl Job{
                 while !result{
                     count += 1;
                     log::warn!("Before_script for request: {} failed, retrying command..",self.reqid());
+                    self.clone().set_feedback("Retrying command...".to_string(), feedback::FeedbackType::STEP).await;
                     result = self.execute_commands(self.prepare_inherit_command(ScriptType::BEFORE)).await?;            
+                    if count >= self.script_retry.max{
+                        break;
+                    }
 
                 }
             }
@@ -396,9 +406,11 @@ impl Job{
                 if self.script_retry.retry{
                     while !result {
                         count += 1;
-                        if count <= self.script_retry.max{
-                            log::warn!("Before_script for request: {} failed, retrying command..",self.reqid());
-                            result = self.execute_commands(command.to_owned()).await?;
+                        log::warn!("Before_script for request: {} failed, retrying command..",self.reqid());
+                        self.clone().set_feedback("Retrying command...".to_string(), feedback::FeedbackType::STEP).await;
+                        result = self.execute_commands(command.to_owned()).await?;
+                        if count >= self.script_retry.max{
+                            break;
                         }
                     }
                 }
@@ -409,15 +421,94 @@ impl Job{
     }
 
     #[allow(dead_code)]
-    fn run_after_command(self) -> bool{
+    pub async fn run_after_command(&self) -> Result<bool, Box<dyn std::error::Error>>{
         // Run after script
-        return true;
+
+        self.clone().set_feedback("Executing main script".to_string(), feedback::FeedbackType::STEP).await;
+
+        if self.script.len() == 0 {
+            return Ok(true)
+        }
+        let mut count = 0;
+        if self.script_execution_strategy.eq(&"inherit"){
+            let mut result = self.execute_commands(self.prepare_inherit_command(ScriptType::SCRIPT)).await?;
+            if self.script_retry.retry{
+                while !result{
+                    count += 1;
+                    log::warn!("Main script for request: {} failed, retrying command..",self.reqid());
+                    self.clone().set_feedback("Retrying command...".to_string(), feedback::FeedbackType::STEP).await;
+                    result = self.execute_commands(self.prepare_inherit_command(ScriptType::SCRIPT)).await?;            
+                    if count >= self.script_retry.max{
+                        break;
+                    }
+                }
+            }
+            Ok(result)
+            
+        }else{
+            // Solo strategy
+            let mut result: bool = false;
+            for command in self.script.to_owned(){
+                result = self.execute_commands(command.to_owned()).await?;
+                if self.script_retry.retry{
+                    while !result {
+                        count += 1;
+                        log::warn!("Main script for request: {} failed, retrying command..",self.reqid());
+                        self.clone().set_feedback("Retrying command...".to_string(), feedback::FeedbackType::STEP).await;
+                        result = self.execute_commands(command.to_owned()).await?;
+                        if count >= self.script_retry.max{
+                            break;
+                        }
+                    }
+                }
+            }
+            Ok(result)
+        }
     }
 
     #[allow(dead_code)]
-    pub fn run_main_command(self) -> bool{
+    pub async fn run_main_command(&self) -> Result<bool, Box<dyn std::error::Error>>{
         // Run script
-        return true;
+        self.clone().set_feedback("Executing main script".to_string(), feedback::FeedbackType::STEP).await;
+
+        if self.script.len() == 0 {
+            return Ok(true)
+        }
+        let mut count = 0;
+        if self.script_execution_strategy.eq(&"inherit"){
+            let mut result = self.execute_commands(self.prepare_inherit_command(ScriptType::SCRIPT)).await?;
+            if self.script_retry.retry{
+                while !result{
+                    count += 1;
+                    log::warn!("Main script for request: {} failed, retrying command..",self.reqid());
+                    self.clone().set_feedback("Retrying command...".to_string(), feedback::FeedbackType::STEP).await;
+                    result = self.execute_commands(self.prepare_inherit_command(ScriptType::SCRIPT)).await?;            
+                    if count >= self.script_retry.max{
+                        break;
+                    }
+                }
+            }
+            Ok(result)
+            
+        }else{
+            // Solo strategy
+            let mut result: bool = false;
+            for command in self.script.to_owned(){
+                result = self.execute_commands(command.to_owned()).await?;
+                if self.script_retry.retry{
+                    while !result {
+                        count += 1;
+                        log::warn!("Main script for request: {} failed, retrying command..",self.reqid());
+                        self.clone().set_feedback("Retrying command...".to_string(), feedback::FeedbackType::STEP).await;
+                        result = self.execute_commands(command.to_owned()).await?;
+                        if count >= self.script_retry.max{
+                            break;
+                        }
+                    }
+                }
+            }
+            Ok(result)
+        }
     }
 }
 
