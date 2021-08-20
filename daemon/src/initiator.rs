@@ -1,4 +1,4 @@
-use core_lib::{jobconfiguration::{self, JobStatus}, request::{self, Request}, settings::Settings, feedback};
+use core_lib::{jobconfiguration::{self, JobStatus}, request::{self, Request}, settings::Settings, feedback, moduleexecutor};
 
 pub async fn test(id: i64){
     println!("AYnc called: {}",id);
@@ -8,6 +8,15 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
     // Proceede with the flow prepared by initiate
    if request::Request::set_status(request::RequestStatus::PROCESSING, req.to_owned()).await{
         // was able to set the status
+
+        moduleexecutor::execute_module(
+            moduleexecutor::ExecutionType::RequestStarting, 
+            format!(
+                    "{{\\\"reqid\\\":{}}}",
+                    req.id()
+                ).to_string()
+        ).await;
+
         let mut jobfailed: bool = false;
         for job in jobs{
             // If previous job has failed so mark other sucessive jobs as IGNORED
@@ -17,7 +26,28 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
             }
             let _job = job.to_owned();
             job.to_owned().set_status(JobStatus::RUNNING).await;
-            let before_script = job.run_before_command().await?;
+
+            //before script
+            //pre brefore script
+            moduleexecutor::execute_module(
+                moduleexecutor::ExecutionType::PreBeforeScript,
+                format!(
+                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
+                        req.id(),job.stage()
+                    ).to_string()
+            ).await;
+
+            let before_script = job.run_before_command(req.meta().to_string()).await?;
+            
+            // post before script
+            moduleexecutor::execute_module(
+                moduleexecutor::ExecutionType::PostBeforeScript,
+                format!(
+                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\",\\\"command_status\\\":{}}}",
+                        req.id(),job.stage(),before_script
+                    ).to_string()
+            ).await;
+
             if !before_script{
                 if !job.to_owned().allow_failure(){
                     // Job failed and no allow_failure
@@ -32,8 +62,97 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
                     continue;
                 }
             }
+
+            //main script
+            // Pre main script
+            moduleexecutor::execute_module(
+                moduleexecutor::ExecutionType::PreMainScript,
+                format!(
+                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
+                        req.id(),job.stage()
+                    ).to_string()
+            ).await;
+
+            let main_script = job.run_main_command(req.meta().to_string()).await?;
+
+            // post main script
+            moduleexecutor::execute_module(
+                moduleexecutor::ExecutionType::PostMainScript,
+                format!(
+                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\",\\\"command_status\\\":{}}}",
+                        req.id(),job.stage(),main_script
+                    ).to_string()
+            ).await;
+
+            if !main_script{
+                if !job.to_owned().allow_failure(){
+                    #[cfg(debug_assertions)]
+                    println!("Stopping request {} since stage: {} failed",req.id(),job.to_owned().stage());
+
+                    log::error!("Stopping request {} since stage: {} failed",req.id(),job.to_owned().stage());
+                    job.to_owned().set_status(JobStatus::FAILED).await;
+                    job.set_feedback("Job Failed".to_string(),feedback::FeedbackType::ERROR).await;
+                    Request::set_status(request::RequestStatus::FAILED, req.to_owned()).await;
+                    jobfailed = true;
+                    continue;
+                }
+            }
+
+            //after script
+            // Pre after script
+            moduleexecutor::execute_module(
+                moduleexecutor::ExecutionType::PreAfterScript,
+                format!(
+                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
+                        req.id(),job.stage()
+                    ).to_string()
+            ).await;
+
+            let after_script = job.run_after_command(req.meta().to_string()).await?;
+
+            // post after script
+            moduleexecutor::execute_module(
+                moduleexecutor::ExecutionType::PostAfterScript,
+                format!(
+                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\",\\\"command_status\\\":{}}}",
+                        req.id(),job.stage(),main_script
+                    ).to_string()
+            ).await;
+
+            if !after_script{
+                if !job.to_owned().allow_failure(){
+                    #[cfg(debug_assertions)]
+                    println!("Stopping request {} since stage: {} failed",req.id(),job.to_owned().stage());
+
+                    log::error!("Stopping request {} since stage: {} failed",req.id(),job.to_owned().stage());
+                    job.to_owned().set_status(JobStatus::FAILED).await;
+                    job.set_feedback("Job Failed".to_string(),feedback::FeedbackType::ERROR).await;
+                    Request::set_status(request::RequestStatus::FAILED, req.to_owned()).await;
+                    jobfailed = true;
+                    continue;
+                }
+            }
+
+            job.to_owned().set_status(JobStatus::SUCCESS).await;
             
+            // Job finished module
+            moduleexecutor::execute_module(
+                moduleexecutor::ExecutionType::JobFinished,
+                format!(
+                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
+                        req.id(),job.stage()
+                    ).to_string()
+            ).await;
         }
+
+        // Request finished
+        moduleexecutor::execute_module(
+            moduleexecutor::ExecutionType::RequestFinished,
+            format!(
+                    "{{\\\"reqid\\\":{},\\\"status\\\":{}}}",
+                    req.id(),!jobfailed
+                ).to_string()
+        ).await;
         Ok(())
    }else{
         log::error!("Unable to set status for request: {}, hence skipping this request for later",req.id());

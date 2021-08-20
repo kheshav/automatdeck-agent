@@ -23,6 +23,7 @@ struct Security{
 
 #[derive(Debug,Serialize, Deserialize)]
 struct Module{
+    python_path: String,
     module_dir: String,
     enabled_modules: Vec<String>,
 }
@@ -43,7 +44,7 @@ impl Default for Main{
             email:String::from(""),
             access_key:String::from(""),
             secret_key:String::from(""),
-            log_dir:String::from("log"),
+            log_dir:String::from("/etc/ad-agent/log"),
             log_level:String::from("INFO"),
             max_thread: 4,
         }
@@ -64,7 +65,8 @@ impl Default for Module{
     // Default for Module
     fn default() -> Self {
         Module{
-            module_dir:String::from("modules/"),
+            python_path: String::from("/usr/bin/python"),
+            module_dir: String::from("/etc/ad-agent/modules"),
             enabled_modules: Vec::new(),
         }
     }

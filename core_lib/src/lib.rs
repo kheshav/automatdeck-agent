@@ -7,3 +7,4 @@ pub mod jobconfiguration;
 pub mod tests;
 pub mod feedback;
 pub mod encryption;
+pub mod moduleexecutor;

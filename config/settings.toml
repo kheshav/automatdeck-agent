@@ -4,7 +4,7 @@ check_interval = 5    # Check interval in seconds (default: 300)
 email = "kheshavsewnundun@gmail.com" # Email of the account
 access_key = "86e999ef0ebe4b56a7cda4b342f73813"
 secret_key = "8e60da5dea15489b9d4412f5906c93c7"
-log_dir = "log" # default: in folder named "log" where ad-agent is installed
+log_dir = "/Users/kheshavsewnundun/Projects/automatdeck/agent/log" # Log dir path
 log_level = "DEBUG"  # Allowed values: INFO, WARN, DEBUG (default: DEBUG)
 max_thread = 4 # Max allowed active thread (default: 4)
 
@@ -13,5 +13,6 @@ enable_encryption = false # Encrypt data before sending to api (default: false)
 key_path = "/Users/kheshavsewnundun/Projects/automatdeck/agent/keys/public-key.pem" # Public PKCS1 key fullpath
 
 [modules]
-module_dir = ""
-enabled_modules = [] # Double quoted String separated by comma
+python_path = "/usr/bin/python" # Path of python binary
+module_dir = "/Users/kheshavsewnundun/Projects/automatdeck/agent/modules"
+enabled_modules = ["example.py"] # Double quoted String separated by comma
