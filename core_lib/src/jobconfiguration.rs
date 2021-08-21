@@ -291,7 +291,7 @@ impl Job{
         let mut final_scripts: String = "".to_string();
         for script in scripts{
             if count > 0{
-                final_scripts.push_str("&&");
+                final_scripts.push_str(" && ");
                 final_scripts.push_str(&script);
             } else {
                 final_scripts.push_str(&script);
@@ -305,9 +305,7 @@ impl Job{
     #[allow(dead_code)]
     async fn execute_commands(&self,command: String, meta: String) -> Result<bool, Box<dyn std::error::Error>>{
         // Generic executor of command
-        let mut  _command = command.to_owned();
-        _command = _command.replace("\"","\\\"");
-        self.clone().set_feedback(_command.to_owned(), feedback::FeedbackType::COMMAND).await;
+        self.clone().set_feedback(command.to_owned(), feedback::FeedbackType::COMMAND).await;
 
         if command.is_empty(){
             return Ok(true)

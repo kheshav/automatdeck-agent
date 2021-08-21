@@ -110,23 +110,29 @@ if __name__ == '__main__':
     opts = [opt for opt in sys.argv[1:] if opt.startswith("-")]
     args = [arg for arg in sys.argv[1:] if not arg.startswith("-")]
 
+    payload = {}
+    for a in args:
+        print(a)
+        payload[a.split(":")[0].replace("\"", "")] = a.split(":")[
+            1].replace("\"", "")
+
     if "-rf" in opts:
-        request_finished(**json.loads(args[0]))
+        request_finished(**payload)
     elif "-rs" in opts:
         request_starting(**json.loads(args[0]))
     elif "-jf" in opts:
-        job_finished(**json.loads(args[0]))
+        job_finished(**payload)
     elif "-js" in opts:
-        job_starting(**json.loads(args[0]))
+        job_starting(**payload)
     elif "-post_ms" in opts:
-        post_main_script(**json.loads(args[0]))
+        post_main_script(**payload)
     elif "-pre_ms" in opts:
-        pre_main_script(**json.loads(args[0]))
-    elif "--post_bs" in opts:
-        post_before_script(**json.loads(args[0]))
-    elif "--pre_bs" in opts:
-        pre_before_script(**json.loads(args[0]))
-    elif "--pos_as" in opts:
-        post_after_script(**json.loads(args[0]))
-    elif "--pre_as" in opts:
-        pre_after_script(**json.loads(args[0]))
+        pre_main_script(**payload)
+    elif "-post_bs" in opts:
+        post_before_script(**payload)
+    elif "-pre_bs" in opts:
+        pre_before_script(**payload)
+    elif "-post_as" in opts:
+        post_after_script(**payload)
+    elif "-pre_as" in opts:
+        pre_after_script(**payload)

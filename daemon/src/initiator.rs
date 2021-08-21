@@ -18,6 +18,7 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
         ).await;
 
         let mut jobfailed: bool = false;
+        let mut requestwarning: bool = false;
         for job in jobs{
             // If previous job has failed so mark other sucessive jobs as IGNORED
             if jobfailed{
@@ -59,7 +60,10 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
                     job.set_feedback("Job Failed".to_string(),feedback::FeedbackType::ERROR).await;
                     Request::set_status(request::RequestStatus::FAILED, req.to_owned()).await;
                     jobfailed = true;
+                    requestwarning = false;
                     continue;
+                }else{
+                    requestwarning = true;
                 }
             }
 
@@ -94,7 +98,10 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
                     job.set_feedback("Job Failed".to_string(),feedback::FeedbackType::ERROR).await;
                     Request::set_status(request::RequestStatus::FAILED, req.to_owned()).await;
                     jobfailed = true;
+                    requestwarning = false;
                     continue;
+                }else{
+                    requestwarning = true;
                 }
             }
 
@@ -129,7 +136,10 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
                     job.set_feedback("Job Failed".to_string(),feedback::FeedbackType::ERROR).await;
                     Request::set_status(request::RequestStatus::FAILED, req.to_owned()).await;
                     jobfailed = true;
+                    requestwarning = false;
                     continue;
+                }else{
+                    requestwarning = true;
                 }
             }
 
@@ -145,6 +155,13 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
             ).await;
         }
 
+        if requestwarning{
+            Request::set_status(request::RequestStatus::WARNING, req.to_owned()).await;
+        }else{
+            if !jobfailed{
+                Request::set_status(request::RequestStatus::COMPLETED, req.to_owned()).await;
+            }
+        }
         // Request finished
         moduleexecutor::execute_module(
             moduleexecutor::ExecutionType::RequestFinished,

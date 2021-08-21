@@ -220,9 +220,11 @@ name = "core_lib"
 version = "0.1.0"
 dependencies = [
  "backtrace",
+ "base64",
  "config",
  "derive-getters",
  "digest",
+ "htmlescape",
  "json",
  "log",
  "os_pipe",
@@ -454,6 +456,12 @@ checksum = "322f4de77956e22ed0e5032c359a0f1273f1f7f0d79bfa3b8ffbc730d7fbcc5c"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "htmlescape"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9025058dae765dee5070ec375f591e2ba14638c63feff74f13805a72e523163"
 
 [[package]]
 name = "http"

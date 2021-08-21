@@ -27,7 +27,7 @@ impl ExecutionType{
             ExecutionType::PreMainScript => "-pre_ms",
             ExecutionType::PostMainScript => "-post_ms",
             ExecutionType::PreAfterScript => "-pre_as",
-            ExecutionType::PostAfterScript => "-post-as",
+            ExecutionType::PostAfterScript => "-post_as",
             ExecutionType::PreBeforeScript => "-pre_bs",
             ExecutionType::PostBeforeScript => "-post_bs",
         }
