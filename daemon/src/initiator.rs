@@ -9,6 +9,7 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
    if request::Request::set_status(request::RequestStatus::PROCESSING, req.to_owned()).await{
         // was able to set the status
 
+        // Request Starting module
         moduleexecutor::execute_module(
             moduleexecutor::ExecutionType::RequestStarting, 
             format!(
@@ -30,24 +31,28 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
 
             //before script
             //pre brefore script
-            moduleexecutor::execute_module(
-                moduleexecutor::ExecutionType::PreBeforeScript,
-                format!(
-                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
-                        req.id(),job.stage()
-                    ).to_string()
-            ).await;
+            if *job.to_owned().trigger_module(){
+                moduleexecutor::execute_module(
+                    moduleexecutor::ExecutionType::PreBeforeScript,
+                    format!(
+                            "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
+                            req.id(),job.stage()
+                        ).to_string()
+                ).await;
+            }
 
             let before_script = job.run_before_command(req.meta().to_string()).await?;
             
             // post before script
-            moduleexecutor::execute_module(
-                moduleexecutor::ExecutionType::PostBeforeScript,
-                format!(
-                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\",\\\"command_status\\\":{}}}",
-                        req.id(),job.stage(),before_script
-                    ).to_string()
-            ).await;
+            if *job.to_owned().trigger_module(){
+                moduleexecutor::execute_module(
+                    moduleexecutor::ExecutionType::PostBeforeScript,
+                    format!(
+                            "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\",\\\"command_status\\\":{}}}",
+                            req.id(),job.stage(),before_script
+                        ).to_string()
+                ).await;
+            }
 
             if !before_script{
                 if !job.to_owned().allow_failure(){
@@ -69,24 +74,28 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
 
             //main script
             // Pre main script
-            moduleexecutor::execute_module(
-                moduleexecutor::ExecutionType::PreMainScript,
-                format!(
-                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
-                        req.id(),job.stage()
-                    ).to_string()
-            ).await;
+            if *job.to_owned().trigger_module(){
+                moduleexecutor::execute_module(
+                    moduleexecutor::ExecutionType::PreMainScript,
+                    format!(
+                            "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
+                            req.id(),job.stage()
+                        ).to_string()
+                ).await;
+            }
 
             let main_script = job.run_main_command(req.meta().to_string()).await?;
 
             // post main script
-            moduleexecutor::execute_module(
-                moduleexecutor::ExecutionType::PostMainScript,
-                format!(
-                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\",\\\"command_status\\\":{}}}",
-                        req.id(),job.stage(),main_script
-                    ).to_string()
-            ).await;
+            if *job.to_owned().trigger_module(){
+                moduleexecutor::execute_module(
+                    moduleexecutor::ExecutionType::PostMainScript,
+                    format!(
+                            "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\",\\\"command_status\\\":{}}}",
+                            req.id(),job.stage(),main_script
+                        ).to_string()
+                ).await;
+            }
 
             if !main_script{
                 if !job.to_owned().allow_failure(){
@@ -107,24 +116,28 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
 
             //after script
             // Pre after script
-            moduleexecutor::execute_module(
-                moduleexecutor::ExecutionType::PreAfterScript,
-                format!(
-                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
-                        req.id(),job.stage()
-                    ).to_string()
-            ).await;
+            if *job.to_owned().trigger_module(){
+                moduleexecutor::execute_module(
+                    moduleexecutor::ExecutionType::PreAfterScript,
+                    format!(
+                            "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
+                            req.id(),job.stage()
+                        ).to_string()
+                ).await;
+            }
 
             let after_script = job.run_after_command(req.meta().to_string()).await?;
 
             // post after script
-            moduleexecutor::execute_module(
-                moduleexecutor::ExecutionType::PostAfterScript,
-                format!(
-                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\",\\\"command_status\\\":{}}}",
-                        req.id(),job.stage(),main_script
-                    ).to_string()
-            ).await;
+            if *job.to_owned().trigger_module(){
+                moduleexecutor::execute_module(
+                    moduleexecutor::ExecutionType::PostAfterScript,
+                    format!(
+                            "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\",\\\"command_status\\\":{}}}",
+                            req.id(),job.stage(),main_script
+                        ).to_string()
+                ).await;
+            }
 
             if !after_script{
                 if !job.to_owned().allow_failure(){
@@ -146,13 +159,15 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
             job.to_owned().set_status(JobStatus::SUCCESS).await;
             
             // Job finished module
-            moduleexecutor::execute_module(
-                moduleexecutor::ExecutionType::JobFinished,
-                format!(
-                        "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
-                        req.id(),job.stage()
-                    ).to_string()
-            ).await;
+            if *job.to_owned().trigger_module(){
+                moduleexecutor::execute_module(
+                    moduleexecutor::ExecutionType::JobFinished,
+                    format!(
+                            "{{\\\"reqid\\\":{},\\\"jobname\\\":\\\"{}\\\"}}",
+                            req.id(),job.stage()
+                        ).to_string()
+                ).await;
+            }
         }
 
         if requestwarning{

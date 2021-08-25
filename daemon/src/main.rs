@@ -34,23 +34,34 @@ fn bootstrap(settings: &config::Config){
     log::info!("Checking for prerequisits...");
 
     let mut error: bool = false; 
-    
-    if settings.get::<String>("main.access_key").unwrap().is_empty(){
-        log::error!("access_key in settings cannot be empty!!!!");
+
+    if settings.get::<String>("main.url").unwrap_or_default().is_empty(){
+        log::error!("url in settings is missing or is empty!!!!");
         error = true
     }
 
-    if settings.get::<String>("main.secret_key").unwrap().is_empty(){
+    if settings.get::<String>("main.email").unwrap_or_default().is_empty(){
+        log::error!("email in settings is missing or is empty!!!!");
+        error = true
+    }
+    
+    if settings.get::<String>("main.access_key").unwrap_or_default().is_empty(){
+        log::error!("access_key in settings is missing or is empty!!!!");
+        error = true
+    }
+
+    if settings.get::<String>("main.secret_key").unwrap_or_default().is_empty(){
         log::error!("secret_key in settings cannot be empty!!!!");
         error = true
     }
 
 
     if error{
+        log::error!("Prerequisits check [KO]");
         process::exit(1);
     }
 
-    log::info!("Prerequisits checked [OK]");
+    log::info!("Prerequisits check [OK]");
 }
 
 
@@ -87,10 +98,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
 
     let config = Config::builder()
         .appender(Appender::builder().build("logfile", Box::new(logfile)))
-        .build(Root::builder()
+        .build(
+            Root::builder()
                    .appender("logfile")
-                   .build(get_log_level(&settings.get::<String>("main.log_level")
-                                        .unwrap_or_default()
+                   .build(
+                            get_log_level(
+                                            &settings.get::<String>("main.log_level")
+                                            .unwrap_or_default()
                                         )
                           )
         )
@@ -126,6 +140,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
             println!("Doing work...");
             #[cfg(debug_assertions)]
             println!("OK");
+
             log::debug!("Sleeping for {} seconds", settings.get::<String>("main.check_interval").unwrap());
             thread::sleep(Duration::from_secs(settings.get::<u64>("main.check_interval").unwrap()));
             

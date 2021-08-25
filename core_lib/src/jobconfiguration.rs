@@ -60,8 +60,6 @@ pub struct Job{
     allow_failure: bool,
     #[serde(default = "default_trigger_module")]
     trigger_module: bool,
-    #[serde(default = "default_timeout")]
-    timeout: String,
     //#[serde(flatten)]
     script_retry: ScriptRetry,
     #[serde(default = "default_scripts")]
@@ -79,16 +77,13 @@ fn default_scripts() -> Vec<String>{
     Vec::new()
 }
 
-fn default_timeout() -> String {
-    "5m".to_string()
-}
 
 fn default_trigger_module() -> bool{
     false
 }
 
 fn default_script_execution_strategy() -> String{
-    "solo".to_string()
+    "inherit".to_string()
 }
 
 fn default_allow_failure() -> bool{
@@ -426,18 +421,18 @@ impl Job{
 
         self.clone().set_feedback("Executing main script".to_string(), feedback::FeedbackType::STEP).await;
 
-        if self.script.len() == 0 {
+        if self.after_script.len() == 0 {
             return Ok(true)
         }
         let mut count = 0;
         if self.script_execution_strategy.eq(&"inherit"){
-            let mut result = self.execute_commands(self.prepare_inherit_command(ScriptType::SCRIPT),meta.to_owned()).await?;
+            let mut result = self.execute_commands(self.prepare_inherit_command(ScriptType::AFTER),meta.to_owned()).await?;
             if self.script_retry.retry{
                 while !result{
                     count += 1;
                     log::warn!("Main script for request: {} failed, retrying command..",self.reqid());
                     self.clone().set_feedback("Retrying command... due to retry policy".to_string(), feedback::FeedbackType::STEP).await;
-                    result = self.execute_commands(self.prepare_inherit_command(ScriptType::SCRIPT),meta.to_owned()).await?;            
+                    result = self.execute_commands(self.prepare_inherit_command(ScriptType::AFTER),meta.to_owned()).await?;            
                     if count >= self.script_retry.max{
                         break;
                     }
@@ -448,7 +443,7 @@ impl Job{
         }else{
             // Solo strategy
             let mut result: bool = false;
-            for command in self.script.to_owned(){
+            for command in self.after_script.to_owned(){
                 result = self.execute_commands(command.to_owned(),meta.to_owned()).await?;
                 if self.script_retry.retry{
                     while !result {
