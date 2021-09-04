@@ -1,6 +1,6 @@
 use std::{env, panic::{self, PanicInfo}, collections::HashMap};
 use backtrace::Backtrace;
-
+use crate::feedback;
 
 #[macro_export]
 macro_rules! format_err {
@@ -52,7 +52,9 @@ Thank you kindly!
                     None
                 };
 
-                println!("{}", text);
+                //println!("{}", text);
+                feedback::format_display(&text);
+
 
                 let mut payload = String::new();
 

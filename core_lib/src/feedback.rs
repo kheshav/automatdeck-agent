@@ -1,4 +1,6 @@
 use base64;
+use chrono::Local;
+
 pub enum FeedbackType{
     STEP,
     COMMAND,
@@ -33,4 +35,10 @@ pub fn format(message: String, message_type: FeedbackType) -> String {
         },
     }
     return base64::encode(final_message.as_bytes());
+}
+
+pub fn format_display(message: &str){
+    // Display message to console
+    let date = Local::now();
+    println!("{} - {}", date.format("[%Y-%m-%d %H:%M:%S]"), message);
 }

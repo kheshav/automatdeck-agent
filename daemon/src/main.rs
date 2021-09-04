@@ -1,7 +1,7 @@
 extern crate config;
 extern crate serde;
 
-use core_lib::{settings::Settings, error};
+use core_lib::{settings::Settings, error, feedback};
 
 use std::time::Duration;
 use std::thread;
@@ -37,31 +37,38 @@ fn bootstrap(settings: &config::Config){
 
     if settings.get::<String>("main.url").unwrap_or_default().is_empty(){
         log::error!("url in settings is missing or is empty!!!!");
+        feedback::format_display("[ERROR] url in settings is missing or is empty!!!!");
         error = true
     }
 
     if settings.get::<String>("main.email").unwrap_or_default().is_empty(){
         log::error!("email in settings is missing or is empty!!!!");
+        feedback::format_display("[ERROR] email in settings is missing or is empty!!!!");
         error = true
     }
     
     if settings.get::<String>("main.access_key").unwrap_or_default().is_empty(){
         log::error!("access_key in settings is missing or is empty!!!!");
+        feedback::format_display("[ERROR] access_key in settings is missing or is empty!!!!");
         error = true
     }
 
     if settings.get::<String>("main.secret_key").unwrap_or_default().is_empty(){
         log::error!("secret_key in settings cannot be empty!!!!");
+        feedback::format_display("[ERROR] secret_key in settings cannot be empty!!!!");
         error = true
     }
 
 
     if error{
+        feedback::format_display("[ERROR] Prerequisit check failed");
         log::error!("Prerequisits check [KO]");
         process::exit(1);
     }
 
     log::info!("Prerequisits check [OK]");
+    feedback::format_display("Prerequisit check SUCCESSFULL");
+    feedback::format_display("Checking for requests...");
 }
 
 
@@ -111,10 +118,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
         .unwrap();
     let _handle = log4rs::init_config(config).unwrap();
 
+    log::info!("Starting ad-agent application");
+    feedback::format_display("Starting ad-agent Agent");
+
     // Check of prerequisits
     bootstrap(&settings);
 
-    log::info!("Starting dd-agent application");
     let _s: Settings = serde_json::from_str(&_s).unwrap();
     log::debug!("Detected configurations: \n {:#?}", _s);
 
@@ -148,7 +157,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
             initiator::initiate().await;
         }
 
-        println!("\nThread exiting...");
+        feedback::format_display("Exiting application");
     });
 
     /*
@@ -200,9 +209,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     // Wait for thread to exit
     //t.join().unwrap();
     // Cleanup code goes here
-    println!("\nReceived kill signal. Wait 10 seconds, or hit Ctrl+C again to exit immediately.");
+    feedback::format_display("Received kill signal. Wait 10 seconds, or hit Ctrl+C again to exit immediately.");
     thread::sleep(time::Duration::from_secs(10));
-    println!("Exited cleanly");
+    feedback::format_display("Application exited");
     log::info!("Application shutdown..");
     Ok(())
 
