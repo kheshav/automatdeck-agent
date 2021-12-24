@@ -19,5 +19,5 @@ agent-build-x86:
         - tree target
     artifacts:
         paths:
-            - target/release/x86_64-unknown-linux-musl/release/ad-agent
+            - target/x86_64-unknown-linux-musl/release/ad-agent
         expire_in: 2 days
