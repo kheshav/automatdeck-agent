@@ -11,6 +11,8 @@ agent-build-x86:
     image: messense/rust-musl-cross:x86_64-musl
     stage: build
     script:
+        - apt-get install -y tree
         - ls
         - cargo build --release
         - ls
+        - tree target
