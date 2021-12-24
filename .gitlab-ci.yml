@@ -12,4 +12,5 @@ agent-build-x86:
     stage: build
     script:
         - ls
-        - rust-musl-builder cargo build --release
+        - cargo build --release
+        - ls
