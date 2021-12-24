@@ -11,13 +11,9 @@ agent-build-x86:
     image: messense/rust-musl-cross:x86_64-musl
     stage: build
     script:
-        - apt-get update
-        - apt-get install -y tree
-        - ls
         - cargo build --release
-        - ls
-        - tree target
-    artifacts:
+        - build.sh --arch x86_64-unknown-linux-musl --version ${CI_COMMIT_TAG}
+     artifacts:
         paths:
-            - target/x86_64-unknown-linux-musl/release/ad-agent
+            - /tmp
         expire_in: 2 days
