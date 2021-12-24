@@ -1,0 +1,15 @@
+stages:
+    - build
+
+variables:
+    project: "agent"
+    DOCKER_TLS_CERTDIR: ""
+
+agent-build-x86:
+    tags:
+        - oraclecloud
+    image: messense/rust-musl-cross:x86_64-musl
+    stage: build
+    script:
+        - ls
+        - rust-musl-builder cargo build --release
