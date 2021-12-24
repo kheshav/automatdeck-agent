@@ -13,7 +13,7 @@ agent-build-x86:
     script:
         - cargo build --release
         - build.sh --arch x86_64-unknown-linux-musl --version ${CI_COMMIT_TAG}
-     artifacts:
+    artifacts:
         paths:
             - /tmp
         expire_in: 2 days
