@@ -17,3 +17,7 @@ agent-build-x86:
         - cargo build --release
         - ls
         - tree target
+    artifacts:
+        paths:
+            - target/release/x86_64-unknown-linux-musl/release/ad-agent
+        expire_in: 2 days
