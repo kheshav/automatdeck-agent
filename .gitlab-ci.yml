@@ -13,7 +13,8 @@ agent-build-x86:
     script:
         - cargo build --release
         - ./build.sh --arch x86_64-unknown-linux-musl --version ${CI_COMMIT_TAG}
+        - mkdir build && cp /tmp/ad-agent*.tar.gz build/
     artifacts:
         paths:
-            - /tmp
+            - build
         expire_in: 2 days
