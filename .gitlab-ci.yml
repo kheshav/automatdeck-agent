@@ -31,7 +31,7 @@ agent-build-x86:
             - build
         expire_in: 2 days
 
-agent-build-arm64
+agent-build-arm64:
     tags:
         - oraclecloud
     image: messense/rust-musl-cross:aarch64-musl
