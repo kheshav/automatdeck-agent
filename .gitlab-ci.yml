@@ -44,6 +44,6 @@ agent-build-arm64:
         - tags
         - master
     artifacts:
-        path:
+        paths:
             - build
         expire_in: 2 days
