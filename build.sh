@@ -28,6 +28,7 @@ echo "Copying files..."
 mkdir -p /tmp/ad-agent/{modules,config,log}
 cp -rv ./config/* /tmp/ad-agent/config/
 cp -rv ./modules /tmp/ad-agent/
+cp -v install.sh /tmp/ad-agent/
 
 echo "Regenerating settings file.."
 echo """[main]
