@@ -12,7 +12,7 @@ ci-test:
     image: messense/rust-musl-cross:x86_64-musl
     stage: test
     script:
-        - cargo check -v
+        - cargo check -j 2 -v
 
 agent-build-x86:
     tags:
@@ -21,9 +21,9 @@ agent-build-x86:
     stage: build
     script:
         - export AD_VERSION="${CI_COMMIT_TAG:=$CI_PIPELINE_ID.0}"
-        - sed -e '0,/0.1.0/ s/0.1.0/${AD_VERSION}/' core_lib/Cargo.toml
-        - sed -e '0,/0.1.0/ s/0.1.0/${AD_VERSION}/' daemon/Cargo.toml
-        - cargo build --release
+        - sed -i "0,/0.1.0/ s/0.1.0/${AD_VERSION}/" core_lib/Cargo.toml
+        - sed -i "0,/0.1.0/ s/0.1.0/${AD_VERSION}/" daemon/Cargo.toml
+        - cargo build -j 2 --release
         - ./build.sh --arch x86_64-unknown-linux-musl --version ${CI_COMMIT_TAG}
         - mkdir build && cp /tmp/ad-agent*.tar.gz build/
     only:
@@ -41,9 +41,9 @@ agent-build-arm64:
     stage: build
     script:
         - export AD_VERSION="${CI_COMMIT_TAG:=$CI_PIPELINE_ID.0}"
-        - sed -e '0,/0.1.0/ s/0.1.0/${AD_VERSION}/' core_lib/Cargo.toml
-        - sed -e '0,/0.1.0/ s/0.1.0/${AD_VERSION}/' daemon/Cargo.toml
-        - cargo build --release
+        - sed -i "0,/0.1.0/ s/0.1.0/${AD_VERSION}/" core_lib/Cargo.toml
+        - sed -i "0,/0.1.0/ s/0.1.0/${AD_VERSION}/" daemon/Cargo.toml
+        - cargo build -j 2 --release
         - ./build.sh --arch aarch64-unknown-linux-musl --version ${CI_COMMIT_TAG}
         - mkdir build && cp /tmp/ad-agent*.tar.gz build/
     only:
