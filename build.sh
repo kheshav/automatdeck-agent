@@ -32,7 +32,7 @@ cp -v install.sh /tmp/ad-agent/
 
 echo "Regenerating settings file.."
 echo """[main]
-url = \"http://127.0.0.1:8000/agent-api/v1\" # Automatdeck entrypoint url
+url = \"\" # Automatdeck entrypoint url
 check_interval = 300    # Check interval in seconds (default: 300)
 email = \"\" # Email of the account
 access_key = \"\"
@@ -40,6 +40,10 @@ secret_key = \"\"
 log_dir = \"/etc/ad-agent/log\" # Log dir path
 log_level = \"INFO\"  # Allowed values: INFO, WARN, DEBUG (default: DEBUG)
 max_thread = 4 # Max allowed active thread (default: 4)
+
+[security]
+enable_encryption = false # Encrypt data (default: false) NOTE: Feature not implemented
+key_path = ""
 
 [modules]
 python_path = \"/usr/bin/python\" # Path of python binary

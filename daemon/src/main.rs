@@ -124,7 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     // Check of prerequisits
     bootstrap(&settings);
 
-    let _s: Settings = serde_json::from_str(&_s).unwrap();
+    let _s: Settings = serde_json::from_str(&_s.clone()).unwrap();
     log::debug!("Detected configurations: \n {:#?}", _s);
 
     // Check for license validity

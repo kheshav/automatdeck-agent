@@ -30,3 +30,8 @@ EOF
     systemctl enable ad-agent
     echo "Systemctl ad-agent enabled"
 fi
+
+
+# Cleanup
+echo "Cleaning up"
+rm /etc/ad-agent/install.sh
