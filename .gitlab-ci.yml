@@ -20,7 +20,6 @@ agent-build-x86:
     image: messense/rust-musl-cross:x86_64-musl
     stage: build
     script:
-        - env
         - export AD_VERSION="${CI_COMMIT_TAG:=$CI_PIPELINE_ID.0.0}"
         - sed -i "0,/0.1.0/ s/0.1.0/${AD_VERSION}/" core_lib/Cargo.toml
         - sed -i "0,/0.1.0/ s/0.1.0/${AD_VERSION}/" daemon/Cargo.toml
@@ -41,7 +40,6 @@ agent-build-arm64:
     image: messense/rust-musl-cross:aarch64-musl
     stage: build
     script:
-        - env
         - export AD_VERSION="${CI_COMMIT_TAG:=$CI_PIPELINE_ID.0.0}"
         - sed -i "0,/0.1.0/ s/0.1.0/${AD_VERSION}/" core_lib/Cargo.toml
         - sed -i "0,/0.1.0/ s/0.1.0/${AD_VERSION}/" daemon/Cargo.toml
