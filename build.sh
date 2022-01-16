@@ -56,7 +56,7 @@ cp -v ./target/$arch/release/ad-agent /tmp/ad-agent/
 chmod +x /tmp/ad-agent/ad-agent
 
 echo "Generating tar file"
-tar -czvf /tmp/ad-agent_$version_$arch.tar.gz -C /tmp ad-agent
+tar -czvf /tmp/ad-agent_${version}_${arch}.tar.gz -C /tmp ad-agent
 
 echo "Cleaning temp dir"
 rm -rf /tmp/ad-agent
