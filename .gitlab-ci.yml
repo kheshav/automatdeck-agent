@@ -25,7 +25,7 @@ agent-build-x86:
         - sed -i "0,/0.1.0/ s/0.1.0/${AD_VERSION}/" daemon/Cargo.toml
         - cargo build -j 2 --release
         - ./build.sh --arch x86_64-unknown-linux-musl --version ${AD_VERSION}
-        - mkdir build && cp /tmp/ad-agent*.tar.gz build/
+        - mkdir -p build/x86_64 && cp /tmp/ad-agent*.tar.gz build/x86_64/
     only:
         - tags
         - master
@@ -45,7 +45,7 @@ agent-build-arm64:
         - sed -i "0,/0.1.0/ s/0.1.0/${AD_VERSION}/" daemon/Cargo.toml
         - cargo build -j 2 --release
         - ./build.sh --arch aarch64-unknown-linux-musl --version ${AD_VERSION}
-        - mkdir build && cp /tmp/ad-agent*.tar.gz build/
+        - mkdir -p build/arm64 && cp /tmp/ad-agent*.tar.gz build/arm64/
     only:
         - tags
         - master
