@@ -14,5 +14,5 @@ cd build
 for FILE in *
 do
     echo "Uploading file $FILE"
-    curl -F "name=$FILE" -F "package=@$FILE" -H "access_key:$repo_access_key" -h "secret_key:$repo_secret_key" $url
+    curl -F "name=$FILE" -F "package=@$FILE" -H "access_key:$repo_access_key" -H "secret_key:$repo_secret_key" $url
 done
