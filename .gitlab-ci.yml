@@ -53,3 +53,12 @@ agent-build-arm64:
         paths:
             - build
         expire_in: 2 days
+
+deploy:
+    image: curlimages/curl:7.81.0 
+    stage: push
+    only:
+        - tags
+        - master
+    script:
+        - ./push.sh
