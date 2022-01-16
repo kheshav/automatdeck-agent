@@ -60,5 +60,7 @@ deploy:
     only:
         - tags
         - master
+    before_script:
+        - apk add bash
     script:
         - ./push.sh
