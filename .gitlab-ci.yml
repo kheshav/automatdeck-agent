@@ -62,5 +62,6 @@ deploy:
         - master
     before_script:
         - apk add bash
+        - apk add curl
     script:
         - ./push.sh
