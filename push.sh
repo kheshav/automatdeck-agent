@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [[ "$CI_COMMIT_BRANCH" == "master" ]]; then
     environment="uat"
