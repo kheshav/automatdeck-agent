@@ -55,12 +55,12 @@ agent-build-arm64:
         expire_in: 2 days
 
 deploy:
-    image: curlimages/curl:7.81.0 
+    image: docker-registry:5000/alpine:latest
     stage: push
     only:
         - tags
         - master
     before_script:
-        - apk add bash
+        - sudo apk add bash
     script:
         - ./push.sh
