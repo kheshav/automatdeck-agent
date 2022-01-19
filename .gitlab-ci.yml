@@ -64,4 +64,4 @@ deploy:
         - apk add bash
         - apk add curl
     script:
-        - ./push.sh
+        - bash -x ./push.sh
