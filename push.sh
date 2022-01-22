@@ -19,8 +19,8 @@ do
     IFS="/"; declare -a Array=($*)
     echo "Arch: ${Array[0]}" 
     echo "File: ${Array[1]}"
-    _md5sum=`md5sum $FILE |awk '{print$1}'`
-    _sha256=`sha256sum $FILE|awk '{print$1}'`
+    _md5sum=`md5sum ${Array[0]}/${Array[1]} | awk '{print $1}'`
+    _sha256=`sha256sum ${Array[0]}/${Array[1]} | awk '{print $1}'`
     curl -F "md5sum=$_md5sum" -F "sha256=$_sha256" -F "name=${Array[1]}" -F "package=@$FILE" -H "access_key:$repo_access_key" -H "secret_key:$repo_secret_key" "$url" -vv
     curl -F "md5sum=$_md5sum" -F "sha256=$_sha256" -F "name=ad-agent_latest_${Array[0]}.tar.gz" -F "package=@$FILE" -H "access_key:$repo_access_key" -H "secret_key:$repo_secret_key" "$url" -vv
 done    
