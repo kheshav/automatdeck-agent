@@ -43,7 +43,7 @@ max_thread = 4 # Max allowed active thread (default: 4)
 
 [security]
 enable_encryption = false # Encrypt data (default: false) NOTE: Feature not implemented
-key_path = ""
+key_path = \"\"
 
 [modules]
 python_path = \"/usr/bin/python\" # Path of python binary
