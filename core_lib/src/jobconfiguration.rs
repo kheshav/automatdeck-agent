@@ -37,12 +37,10 @@ pub struct Stages{
 #[derive(Debug,Getters,Serialize,Deserialize,Dissolve,Clone)]
 #[allow(dead_code)]
 pub struct ScriptRetry{
-    #[serde(default)]
+    #[serde(default = "default_retry")]
     retry: bool,
-    #[serde(default)]
+    #[serde(default = "default_max_retry")]
     max: i32,
-    #[serde(default)]
-    when: String,
 }
 
 
@@ -61,12 +59,21 @@ pub struct Job{
     #[serde(default = "default_trigger_module")]
     trigger_module: bool,
     //#[serde(flatten)]
+    #[serde(default)]
     script_retry: ScriptRetry,
     #[serde(default = "default_scripts")]
     before_script: Vec<String>,
     script: Vec<String>,
     #[serde(default = "default_scripts")]
     after_script: Vec<String>,
+}
+
+fn default_retry() -> bool {
+    false
+}
+
+fn default_max_retry() -> i32 {
+    1
 }
 
 fn default_reqid() -> i64{
@@ -95,6 +102,7 @@ fn default_variables() -> HashMap<String,String> {
     variables.insert(String::from("1234"), String::from("1234"));
     variables
 }
+
 
 impl JobStatus{
 
@@ -135,7 +143,6 @@ impl Default for ScriptRetry{
         ScriptRetry{
             retry: false,
             max: 0,
-            when: String::from("always"),
         }
     }
 }
