@@ -318,6 +318,7 @@ impl Job{
         let mut child = Command::new(shell);
         child.arg(flag);
         child.arg(command.to_owned());
+        child.envs(self.variables.to_owned());
         child.env("AD_META", meta);
 
         // Here's the interesting part. Open a pipe, copy its write end, and
