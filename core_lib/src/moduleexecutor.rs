@@ -1,4 +1,5 @@
 use std::process::Command;
+use std::path::Path;
 use crate::settings::Settings;
 
 #[derive(Debug)]
@@ -43,17 +44,25 @@ pub async fn execute_module(executiontype: ExecutionType, data: String){
     let (shell, flag) = ("sh","-c");
 
     for module in modules.iter(){
-        let command = format!("{} {}/{} {} {}",python_path,module_dir,module,executiontype.value(),data);
-        
-        #[cfg(debug_assertions)]
-        println!("Module command {}",command);
 
-        log::info!("Executing module {} section {} \n data:{}",module,executiontype.value(), data);
-        log::debug!("Executing module command {}",command);
-        let mut child = Command::new(shell);
-        child.arg(flag);
-        child.arg(command);
-        child.output().expect("OK");
-        log::info!("Finished executing module {} section {} \n data:{}",module,executiontype.value(), data);
+
+        let command = format!("{} {}/{} {} {}",python_path,module_dir,module,executiontype.value(),data);
+
+        // Check if registered module exists
+        if Path::new(&format!("{}/{}",module_dir,module)).exists(){
+            #[cfg(debug_assertions)]
+            println!("Module command {}",command);
+
+            log::info!("Executing module {} section {} \n data:{}",module,executiontype.value(), data);
+            log::debug!("Executing module command {}",command);
+            let mut child = Command::new(shell);
+            child.arg(flag);
+            child.arg(command);
+            child.output().expect("OK");
+            log::info!("Finished executing module {} section {} \n data:{}",module,executiontype.value(), data);
+        } else {
+            log::warn!("Module {} not found skipping current module execution...",module);
+        }
+        
     }
 }
