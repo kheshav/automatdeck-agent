@@ -32,7 +32,7 @@ cp -v install.sh /tmp/ad-agent/
 
 echo "Regenerating settings file.."
 echo """[main]
-url = \"\" # Automatdeck entrypoint url
+url = \"https://api.automatdeck.com/agent-api/v1\" # Automatdeck entrypoint url
 check_interval = 300    # Check interval in seconds (default: 300)
 email = \"\" # Email of the account
 access_key = \"\"
