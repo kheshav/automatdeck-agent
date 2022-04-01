@@ -4,7 +4,7 @@ if [[ "$CI_COMMIT_BRANCH" == "master" ]]; then
     mytarget="uat"
 fi
 
-if [[ ! -z "$CI_COMMIT_TAG"]]; then
+if [[ ! -z "$CI_COMMIT_TAG" ]]; then
     mytarget="prod"
 fi
 
