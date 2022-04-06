@@ -2,7 +2,6 @@ extern crate config;
 extern crate serde;
 
 use core_lib::{settings::Settings, error, feedback};
-
 use std::time::Duration;
 use std::thread;
 use log::LevelFilter;
@@ -15,8 +14,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time;
 use signal_hook::flag;
 use signal_hook::{consts::TERM_SIGNALS, consts::signal::*, iterator::Signals};
+use clap::Parser;
 pub mod initiator;
-
+pub mod args;
+pub mod diagnosis;
 
 fn get_log_level(level: &str) -> LevelFilter{
     // Get the correct log level
@@ -28,7 +29,7 @@ fn get_log_level(level: &str) -> LevelFilter{
     }
 }
 
-fn bootstrap(settings: &config::Config){
+pub fn bootstrap(settings: &config::Config, launchmode: bool){
     // check of required settings
     
     log::info!("Checking for prerequisits...");
@@ -37,43 +38,63 @@ fn bootstrap(settings: &config::Config){
 
     if settings.get::<String>("main.url").unwrap_or_default().is_empty(){
         log::error!("url in settings is missing or is empty!!!!");
-        feedback::format_display("[ERROR] url in settings is missing or is empty!!!!");
+        feedback::format_display("url in settings is missing or is empty!!!!",feedback::FedbackDisplayType::ERROR);
         error = true
     }
 
     if settings.get::<String>("main.email").unwrap_or_default().is_empty(){
         log::error!("email in settings is missing or is empty!!!!");
-        feedback::format_display("[ERROR] email in settings is missing or is empty!!!!");
+        feedback::format_display("email in settings is missing or is empty!!!!",feedback::FedbackDisplayType::ERROR);
         error = true
     }
     
     if settings.get::<String>("main.access_key").unwrap_or_default().is_empty(){
         log::error!("access_key in settings is missing or is empty!!!!");
-        feedback::format_display("[ERROR] access_key in settings is missing or is empty!!!!");
+        feedback::format_display("access_key in settings is missing or is empty!!!!", feedback::FedbackDisplayType::ERROR);
         error = true
     }
 
     if settings.get::<String>("main.secret_key").unwrap_or_default().is_empty(){
         log::error!("secret_key in settings cannot be empty!!!!");
-        feedback::format_display("[ERROR] secret_key in settings cannot be empty!!!!");
+        feedback::format_display("secret_key in settings cannot be empty!!!!",feedback::FedbackDisplayType::ERROR);
         error = true
     }
 
 
     if error{
-        feedback::format_display("[ERROR] Prerequisit check failed");
+        feedback::format_display("Prerequisit check failed", feedback::FedbackDisplayType::ERROR);
         log::error!("Prerequisits check [KO]");
         process::exit(1);
     }
 
     log::info!("Prerequisits check [OK]");
-    feedback::format_display("Prerequisit check SUCCESSFULL");
-    feedback::format_display("Checking for requests...");
+    feedback::format_display("Prerequisit check SUCCESSFULL",feedback::FedbackDisplayType::INFO);
+    if launchmode{
+        feedback::format_display("Checking for requests...",feedback::FedbackDisplayType::INFO);
+    }
 }
 
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>>{
+   
+    let opt = args::Args::parse();
+
+    let mut forced_debug: bool = false;
+
+    match opt.subcmd() {
+        args::SubCommand::Launch(t) => {
+            if t.debug().to_owned() {
+                feedback::format_display("Forcing use of debug mode.", feedback::FedbackDisplayType::DEBUG);
+                forced_debug = true;
+            }
+        },
+        args::SubCommand::Diagnose(t) => {
+            diagnosis::diagnose(t.to_owned()).await;
+        }
+    }
+
+
 
     // Error handling
     let mut data = ::std::collections::HashMap::new();
@@ -103,26 +124,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
         .build(settings.get::<String>("main.log_dir").unwrap_or_default() + "/output.log")
         .unwrap();
 
+
+    let mut customloglevel = settings.get::<String>("main.log_level").unwrap_or_default();
+
+    if forced_debug{
+       customloglevel = String::from("DEBUG");
+    }
+
+
     let config = Config::builder()
         .appender(Appender::builder().build("logfile", Box::new(logfile)))
         .build(
             Root::builder()
                    .appender("logfile")
                    .build(
-                            get_log_level(
-                                            &settings.get::<String>("main.log_level")
-                                            .unwrap_or_default()
-                                        )
+                            get_log_level(&customloglevel.to_owned())
                           )
         )
         .unwrap();
     let _handle = log4rs::init_config(config).unwrap();
 
     log::info!("Starting ad-agent application");
-    feedback::format_display("Starting ad-agent Agent");
+    feedback::format_display("Starting ad-agent Agent", feedback::FedbackDisplayType::INFO);
 
     // Check of prerequisits
-    bootstrap(&settings);
+    bootstrap(&settings,true);
 
     let _s: Settings = serde_json::from_str(&_s.clone()).unwrap();
     log::debug!("Detected configurations: \n {:#?}", _s);
@@ -157,27 +183,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
             initiator::initiate().await;
         }
 
-        feedback::format_display("Exiting application");
+        feedback::format_display("Exiting application", feedback::FedbackDisplayType::INFO);
     });
 
-    /*
-    // Our actual work thread
-    let t = thread::spawn(move || {
-        while !term_now.load(Ordering::Relaxed)
-        {
-            println!("Doing work...");
-            println!("OK");
-            log::debug!("Sleeping for {} seconds", settings.get::<String>("main.check_interval").unwrap());
-            thread::sleep(Duration::from_secs(settings.get::<u64>("main.check_interval").unwrap()));
-
-            // Check for new requests
-            // If new requests then spawn new threads (not execeeding MAX thread)
-            // Increment the thread_count variable for each thread created
-        }
-
-        println!("\nThread exiting...");
-    });
-    */
 
     // Create iterator over signals
     let mut signals = Signals::new(TERM_SIGNALS)?;
@@ -209,51 +217,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     // Wait for thread to exit
     //t.join().unwrap();
     // Cleanup code goes here
-    feedback::format_display("Received kill signal. Wait 10 seconds, or hit Ctrl+C again to exit immediately.");
+    feedback::format_display("Received kill signal. Wait 10 seconds, or hit Ctrl+C again to exit immediately.", feedback::FedbackDisplayType::INFO);
     thread::sleep(time::Duration::from_secs(10));
-    feedback::format_display("Application exited");
+    feedback::format_display("Application exited", feedback::FedbackDisplayType::INFO);
     log::info!("Application shutdown..");
     Ok(())
-
-    /*
-    loop{
-        //httpclient::test(String::from("/toto"));
-        //let x  = httpclient::get(String::from("https://httpbin.orgq/ip")).await?;
-        //println!("{}",x);
-        /*
-        let x = httpclient::get2("https://httpbin.org/ip").await;
-        match x{
-            Ok(result) => println!("{}",result),
-            Err(_e) => log::error!("Unable to retrive expected info from api"),
-        }
-        */
-
-        //let query = httpclient::get("/license/").await;
-        
-        // Method 1
-        /*
-        match query {
-            Ok(response) => {
-                                if !response.status().is_success(){
-                                    log::error!("Failed to retreive info from {:?}",response.url().path());
-                                }else{
-                                    println!("{:?}",response.text().await?);
-                                }
-                            },
-            Err(_) => log::error!("Unable to retreive expected info from api"),
-        };
-        */
-        // End of Method 1
-
-        /* Method 2
-        if let Ok(x) = query{
-            println!("{:?}",x.text().await?);
-        }
-        */
-        println!("OK");
-        log::debug!("Sleeping for {} seconds", settings.get::<String>("main.check_interval").unwrap());
-        thread::sleep(Duration::from_secs(settings.get::<u64>("main.check_interval").unwrap()));
-    }
-    */
 
 }

@@ -6,7 +6,6 @@ use std::collections::HashMap;
 
 #[derive(Deserialize, Debug)]
 struct License{
-    status: String,
     message: HashMap<String,String>,
 }
 

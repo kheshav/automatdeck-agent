@@ -53,7 +53,7 @@ Thank you kindly!
                 };
 
                 //println!("{}", text);
-                feedback::format_display(&text);
+                feedback::format_display(&text,feedback::FedbackDisplayType::DEBUG);
 
 
                 let mut payload = String::new();

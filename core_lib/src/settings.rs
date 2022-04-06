@@ -2,7 +2,6 @@ use config::{Config, ConfigError, File};
 use serde::{Serialize, Deserialize};
 use std::process;
 
-
 #[derive(Debug,Serialize, Deserialize)]
 struct Main {
     url: String,
