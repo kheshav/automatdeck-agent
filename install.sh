@@ -17,7 +17,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=/etc/ad-agent
-ExecStart=/etc/ad-agent/ad-agent
+ExecStart=/etc/ad-agent/ad-agent launch
 User=root
 Group=root
 

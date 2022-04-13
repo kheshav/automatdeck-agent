@@ -49,6 +49,8 @@ pub struct ScriptRetry{
 pub struct Job{
     #[serde(default = "default_reqid")]
     reqid: i64, // no in json to be used as ref for the corresponding rquest id
+    #[serde(default = "default_jobname")]
+    jobname: String,
     stage: String,
     #[serde(default = "default_variables")]
     variables: HashMap<String,String>,
@@ -66,6 +68,10 @@ pub struct Job{
     script: Vec<String>,
     #[serde(default = "default_scripts")]
     after_script: Vec<String>,
+}
+
+fn default_jobname() -> String {
+    "".to_string()
 }
 
 fn default_retry() -> bool {
@@ -166,6 +172,7 @@ impl Job{
         let _reqid = self.reqid.to_string().to_owned();
         data.insert("requestid", _reqid.as_str());
         data.insert("stage", &self.stage);
+        data.insert("job_name", &self.jobname);
         data.insert("toupdate", &toupdate);
 
         let query = httpclient::patch(&uri, data).await;
@@ -196,6 +203,7 @@ impl Job{
         let _reqid = self.reqid.to_string().to_owned();
         data.insert("requestid", _reqid.as_str());
         data.insert("stage", &self.stage);
+        data.insert("job_name", &self.jobname);
         data.insert("toupdate", &toupdate);
 
         let query = httpclient::patch(&uri, data).await;
@@ -427,7 +435,7 @@ impl Job{
     pub async fn run_after_command(&self, meta: String) -> Result<bool, Box<dyn std::error::Error>>{
         // Run after script
 
-        self.clone().set_feedback("Executing main script".to_string(), feedback::FeedbackType::STEP).await;
+        self.clone().set_feedback("Executing after script".to_string(), feedback::FeedbackType::STEP).await;
 
         if self.after_script.len() == 0 {
             return Ok(true)
@@ -530,14 +538,15 @@ pub fn build_stages(stages: &Vec<String>, request: RequestData) -> Vec<Job>{
             if conf.0 != "stages"{
                 let mut job: Job = serde_json::from_str(&conf.1.to_string()).unwrap();
                 job.reqid = request.id().to_owned();
+                job.jobname = conf.0.to_string();
     //            let mut job: Job = serde_json::from_str("{\"stage\":\"stage2\",\"script_execution_strategy\":\"solo\",\"trigger_module\":false,\"timeout\":\"1h\",\"script\":[\"mkdir -p  /tmp/test\",\"curl ${HTTP_HOST} -H \\\\\\\"Authorization:\\\\ Bearer ${token}\\\\\\\" -H \\\\\\\"Agent:\\\\ ${AGENT}\\\\\\\" -o /tmp/test/$(date +\\\\\\\"%Y_%m_%d_%I_%M_%p\\\\\\\").out\"],\"after_script\":[\"echo \\\"Script executed\\\"\"]}").unwrap();
                 //println!("stage: {} , job.stage: {}",stage,job.stage);
                 if stage.to_owned() == job.stage{
                     valid_stages = true;
                     job.prepare_commands();
                     flow.push(job);
-                    stages_to_create.push(stage.to_string());
-                    break;
+                    stages_to_create.push(format!("{}:{}",stage.to_string(), conf.0.to_string()));
+                    //break;
                 }
             }
 
