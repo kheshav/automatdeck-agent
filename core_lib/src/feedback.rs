@@ -21,10 +21,12 @@ pub enum FedbackDisplayType{
 pub fn format(message: String, message_type: FeedbackType) -> String {
     // Formater for feedback
     let mut final_message: String = "".to_string();
+    let date = Local::now();
     let message = htmlescape::encode_minimal(&message);
     match message_type{
         FeedbackType::STEP =>{
             final_message.push_str("<p class=\"step\">");
+            final_message.push_str(&date.format("[%Y-%m-%d %H:%M:%S%.6f %Z] - ").to_string());
             final_message.push_str(&message);
             final_message.push_str("</p>");
         },

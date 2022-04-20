@@ -24,7 +24,7 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
             // If previous job has failed so mark other sucessive jobs as IGNORED
             if jobfailed{
                 job.to_owned().set_status(JobStatus::IGNORED).await;
-                break;
+                continue;
             }
             let _job = job.to_owned();
             job.to_owned().set_status(JobStatus::RUNNING).await;

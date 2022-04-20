@@ -322,7 +322,7 @@ impl Job{
             //return true;
         }
         //let (shell, flag) = if cfg!(windows) { ("cmd.exe", "/C") } else { ("sh", "-c") };
-        let (shell, flag) =  ("sh", "-c") ;
+        let (shell, flag) =  ("bash", "-c") ;
         let mut child = Command::new(shell);
         child.arg(flag);
         child.arg(command.to_owned());
@@ -371,28 +371,13 @@ impl Job{
     #[allow(dead_code)]
     pub async fn run_before_command(&self, meta: String) -> Result<bool, Box<dyn std::error::Error>>{
         // Run before script
-        self.clone().set_feedback("Executing before script".to_string(), feedback::FeedbackType::STEP).await;
-        //executor::run(self.to_owned().set_feedback("".to_string()));
-
-
         if self.before_script.len() == 0 {
+            self.clone().set_feedback("No before script configured".to_string(), feedback::FeedbackType::STEP).await;
             return Ok(true)
-            //return true;
         }
+        self.clone().set_feedback("Executing before script".to_string(), feedback::FeedbackType::STEP).await;
         let mut count = 0;
         if self.script_execution_strategy.eq(&"inherit"){
-            /*
-            let mut result: bool = self.execute_commands(self.prepare_inherit_command(ScriptType::BEFORE));
-            if self.script_retry.retry{
-                while !result {
-                    count += 1;
-                    if count <= self.script_retry.max{
-                        log::warn!("Before_script for request: {} failed, retrying command..",self.reqid());
-                        result = self.execute_commands(self.prepare_inherit_command(ScriptType::BEFORE));
-                    }
-                }
-            }
-            */
             let mut result = self.execute_commands(self.prepare_inherit_command(ScriptType::BEFORE),meta.to_owned()).await?;
             if self.script_retry.retry{
                 while !result{
@@ -425,6 +410,11 @@ impl Job{
                         }
                     }
                 }
+
+                // If a command fails do not execute the other
+                if !result {
+                    break;
+                }
             }
             //return result;
             Ok(result)
@@ -434,12 +424,11 @@ impl Job{
     #[allow(dead_code)]
     pub async fn run_after_command(&self, meta: String) -> Result<bool, Box<dyn std::error::Error>>{
         // Run after script
-
-        self.clone().set_feedback("Executing after script".to_string(), feedback::FeedbackType::STEP).await;
-
         if self.after_script.len() == 0 {
+            self.clone().set_feedback("No after script configured".to_string(), feedback::FeedbackType::STEP).await;
             return Ok(true)
         }
+        self.clone().set_feedback("Executing after script".to_string(), feedback::FeedbackType::STEP).await;
         let mut count = 0;
         if self.script_execution_strategy.eq(&"inherit"){
             let mut result = self.execute_commands(self.prepare_inherit_command(ScriptType::AFTER),meta.to_owned()).await?;
@@ -472,6 +461,10 @@ impl Job{
                         }
                     }
                 }
+                // If a command fails do not execute the other
+                if !result {
+                    break;
+                }
             }
             Ok(result)
         }
@@ -480,11 +473,12 @@ impl Job{
     #[allow(dead_code)]
     pub async fn run_main_command(&self, meta: String) -> Result<bool, Box<dyn std::error::Error>>{
         // Run script
-        self.clone().set_feedback("Executing main script".to_string(), feedback::FeedbackType::STEP).await;
 
         if self.script.len() == 0 {
+            self.clone().set_feedback("No main script configured".to_string(), feedback::FeedbackType::STEP).await;
             return Ok(true)
         }
+        self.clone().set_feedback("Executing main script".to_string(), feedback::FeedbackType::STEP).await;
         let mut count = 0;
         if self.script_execution_strategy.eq(&"inherit"){
             let mut result = self.execute_commands(self.prepare_inherit_command(ScriptType::SCRIPT), meta.to_owned()).await?;
@@ -516,6 +510,10 @@ impl Job{
                             break;
                         }
                     }
+                }
+                // If a command fails do not execute the other
+                if !result {
+                    break;
                 }
             }
             Ok(result)
