@@ -68,6 +68,12 @@ pub struct Job{
     script: Vec<String>,
     #[serde(default = "default_scripts")]
     after_script: Vec<String>,
+    #[serde(default = "default_cloud")]
+    cloud: Vec<HashMap<String,String>>
+}
+
+fn default_cloud() -> Vec<HashMap<String,String>> {
+    Vec::new()
 }
 
 fn default_jobname() -> String {
@@ -551,6 +557,9 @@ pub fn build_stages(stages: &Vec<String>, request: RequestData) -> Vec<Job>{
         }
     }
     if !valid_stages{
+        #[cfg(debug_assertions)]
+        println!("Invalid stage {:?}",stages);
+
         log::error!("Skipping request id: {}, and marking it as failed since one or more defined stages are missing.", request.id());
         flow.clear();
         tokio::runtime::Runtime::new().unwrap().block_on(async {
@@ -561,6 +570,7 @@ pub fn build_stages(stages: &Vec<String>, request: RequestData) -> Vec<Job>{
     println!("Stages Valid: {}",valid_stages);
     #[cfg(debug_assertions)]
     println!("Flow: {:?}", flow);
+
     tokio::runtime::Runtime::new().unwrap().block_on(async{
         create_stages(&stages_to_create,request.id().to_owned()).await;
     });

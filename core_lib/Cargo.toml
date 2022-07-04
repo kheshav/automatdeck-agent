@@ -7,6 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+cloud_lib = { path = "../cloud_lib"}
 config = "0.11"
 serde_derive = "^1.0.8"
 serde_json = "1.0.59"
@@ -20,7 +21,7 @@ derive-getters = "0.2.0"
 json = "0.12.4"
 #executor = "0.8"
 os_pipe = "0.9.2"
-rsa = "0.5.0"
+#rsa = "0.5.0"
 rand = "0.8.4"
 digest = "0.9.0"
 sha2 = "0.9.5"
@@ -29,6 +30,7 @@ htmlescape = "0.3.1"
 openssl = { version = "0.10.32", features = ["vendored"] }
 chrono = "0.4.19"
 colored = "2.0.0"
+async-trait = "0.1.53"
 
 [dev-dependencies]
 tokio-test = "0.4.2"

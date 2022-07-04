@@ -1,8 +1,4 @@
-use core_lib::{jobconfiguration::{self, JobStatus}, request::{self, Request}, settings::Settings, feedback, moduleexecutor};
-
-pub async fn test(id: i64){
-    println!("AYnc called: {}",id);
-}
+use core_lib::{jobconfiguration::{self, JobStatus}, request::{self, Request}, settings::Settings, feedback, moduleexecutor, cloud::parse_execute};
 
 pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestData) -> Result<(),Box<dyn std::error::Error>>{
     // Proceede with the flow prepared by initiate
@@ -28,6 +24,40 @@ pub async fn proceede(jobs: Vec<jobconfiguration::Job>, req: request::RequestDat
             }
             let _job = job.to_owned();
             job.to_owned().set_status(JobStatus::RUNNING).await;
+
+            // Cloud actions
+            // In case one cloud action fails do not proceede with another cloud action
+            let cloud = job.cloud().to_owned();
+            if cloud.len() > 0 {
+                job.to_owned().set_feedback("Cloud config detected..Executing cloud config".to_string(), feedback::FeedbackType::STEP).await;
+                for cloudconfig in cloud{
+                    job.to_owned().set_feedback(format!("Executing cloud command {:?}",cloudconfig), feedback::FeedbackType::COMMAND).await;
+                    match parse_execute(cloudconfig.to_owned()).await{
+                        Ok(()) => {
+                            #[cfg(debug_assertions)]
+                            println!("Success when executing cloud {:?}",cloudconfig);
+                            job.to_owned().set_feedback(format!("Successfully executed cloud command {:?}", cloudconfig), feedback::FeedbackType::OUTPUT).await;
+                        },
+                        Err(e) => {
+                            #[cfg(debug_assertions)]
+                            println!("Error when executing cloud {:?} ,\nResult: {}",cloudconfig,e.to_string());
+                            job.to_owned().set_feedback(e.to_string(), feedback::FeedbackType::ERROR).await;
+                            if !job.to_owned().allow_failure() {
+                                Request::set_status(request::RequestStatus::FAILED, req.to_owned()).await;
+                                jobfailed = true;
+                                requestwarning = false;
+                            }else{
+                                requestwarning = true;
+                            }
+                            // In any case if one cloud action fails do not proceede with another one
+                            break;
+                        },
+                    }
+                }
+                if jobfailed {
+                    continue;
+                }
+            }
 
             //before script
             //pre brefore script
@@ -206,47 +236,37 @@ pub async fn initiate(){
         let message = result.message().to_owned();
             for req in message{
                 log::debug!("Detected request id: {}",req.id());
+
                 #[cfg(debug_assertions)]
                 println!("{:?}",req.config());
+
                 if thread_count >= max_thread{
                     log::warn!("Max thread reached skipping unprocessed request for later run");
                     break;
                 }
                 thread_count += 1;
                 if !req.valid(){
+                    #[cfg(debug_assertions)]
+                    println!("Config invalid");
+
                     log::info!("Skipping request id {} since execution plan syntax is not valid", req.id());
                     break;
                 }
 
                 std::thread::spawn(move ||{
-                    //println!("LOL {}",req.id());
-                    //test().await;
-                    //executor::run(test(req.id().to_owned()));
-                    //println!("A child thread borrowing `var`: {:?}", req.id());
                     log::info!("Processing request id: {}", req.id());
                     //let stages: jobconfiguration::Stages = serde_json::from_str("{\"stage\": [\"stage1\", \"stage2\", \"stage3\"]}").unwrap_or_default();
                     let stages: jobconfiguration::Stages = serde_json::from_str(req.config()).unwrap_or_default();
-                    /*
-                    let parse = json::parse(req.config()).unwrap();
-                    //println!("Parsed : {:?}",parse);
-                    //println!("KKKK {:?}",parse["job1"]);
-                    for x in parse.entries(){
-                        println!("Entries: {:?}",x.1);
-                        if x.0 != "stages"{
-                            //println!("{:?}",x.1.to_string());
-                            let y: jobconfiguration::Job = serde_json::from_str(&x.1.to_string()).unwrap();
-                            //let y: jobconfiguration::Job = serde_json::from_str("{\"stage\":\"stage2\",\"variables\":{\"HTTP_HOST\":\"http://127.0.0.1\",\"AGENT\":\"Firefox/1.2.3\"},\"script_execution_strategy\":\"solo\",\"allow_failure\":true,\"trigger_module\":false,\"timeout\":\"1h\",\"script_retry\":{\"retry\":true,\"max\":1,\"when\":\"script_failure\"},\"before_script\":[\"echo \\\"Executing job 2\\\"\"],\"script\":[\"mkdir -p  /tmp/test\",\"curl ${HTTP_HOST} -H \\\\\\\"Authorization:\\\\ Bearer ${token}\\\\\\\" -H \\\\\\\"Agent:\\\\ ${AGENT}\\\\\\\" -o /tmp/test/$(date +\\\\\\\"%Y_%m_%d_%I_%M_%p\\\\\\\").out\"],\"after_script\":[\"echo \\\"Script executed\\\"\"]}").unwrap();
-                            println!("{:?}",y);
-                        }
-
-                    }
-                    */
                     if stages.stages().len() == 0 {
                         log::error!("No stages defined in configuration used for request id: {}",req.id());
                     }else{
                         #[cfg(debug_assertions)]
                         println!("{:?}",stages);
                         let jobs: Vec<jobconfiguration::Job> = jobconfiguration::build_stages(stages.stages(),req.to_owned());
+                        #[cfg(debug_assertions)]
+                        println!("Cloud {:?}", jobs[0].cloud());
+                        //Cloud [{"class": "aws.s3.create_bucket", "bucketname": "toto"}, {"class": "aws.s3.remove_object", "object": "/a.txt", "bucketname": "toto"}]
+
                         tokio::runtime::Runtime::new().unwrap().block_on(async move{
                             #[allow(unused_variables)]
                             let x = proceede(jobs, req.to_owned()).await;

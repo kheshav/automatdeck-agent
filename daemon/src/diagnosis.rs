@@ -9,7 +9,6 @@ use cli_table::{
 };
 
 
-
 #[derive(Debug, Table)]
 struct RequestResult {
     #[table(
@@ -37,7 +36,8 @@ fn border(){
 fn check_conf(){
     // Check config file
     let settings = Settings::new();
-    bootstrap(&settings,false); 
+    bootstrap(&settings,false);
+    
 }
 
 fn print_table(title: &str,data: Vec<RequestResult>) -> Result<()>{
@@ -63,6 +63,13 @@ pub async fn diagnose(arguments: &Diagnose){
     check_conf();
 
     border();
+
+    /*
+    let mut y = HashMap::new();
+    y.insert("class".to_string(),"aws.s3.create_bucket".to_string());
+    y.insert("bucketname".to_string(), "ksetest2".to_string());
+    parse_execute(y.to_owned()).await;
+    */
 
     let query = httpclient::get("/test/").await;
     let mut query_result: String = "[KO]".red().bold().to_string();

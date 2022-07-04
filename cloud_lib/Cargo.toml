@@ -1,0 +1,13 @@
+[package]
+name = "cloud_lib"
+version = "0.1.0"
+authors = ["kheshavsewnundun"]
+edition = "2018"
+
+[dependencies]
+config = "0.11"
+async-trait = "0.1.53"
+log = "0.4.14"
+aws-config = "0.10.1"
+aws-sdk-s3 = "0.10.1"
+http = "0.2.8"
