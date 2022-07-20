@@ -154,6 +154,7 @@ pub async fn generate_client(bucket:String,region: Option<String>) -> CLIENT{
     let ep = Endpoint::immutable(Uri::from_static("https://s3.us-west-004.backblazeb2.com"));
     let s3_conf = aws_sdk_s3::config::Builder::from(&conf)
         .endpoint_resolver(ep)
+        .region(Region::new("us-west-004"))
         .build();
     let client = Client::from_conf(s3_conf);
     */
