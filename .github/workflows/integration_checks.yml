@@ -18,4 +18,4 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           key: ${{matrix.os}}-${{matrix.target}}
-      - run: cargo build --target=${{matrix.target}}
+      - run: cargo +nightly build --target=${{matrix.target}}
