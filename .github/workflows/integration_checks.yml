@@ -20,10 +20,3 @@ jobs:
           key: ${{matrix.os}}-${{matrix.target}}
       - run: cargo +nightly build --target=${{matrix.target}}
 
-  cargo-musl:
-    runs-on: ubuntu-latest
-    name: Build ad-agent musl
-    container: messense/rust-musl-cross:x86_64-musl
-    steps:
-      - uses: actions/checkout@v2
-      - run: cargo build

@@ -1,0 +1,44 @@
+name: Release
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+jobs:
+  build_binary_x86:
+    runs-on: ubuntu-18.04
+    container: messense/rust-musl-cross:x86_64-musl
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare version files
+        run: |
+          echo "Deploying version ${GITHUB_REF#refs/*/}"
+          sed -i "0,/0.1.0/ s/0.1.0/${GITHUB_REF#refs/*/}/" core_lib/Cargo.toml
+          sed -i "0,/0.1.0/ s/0.1.0/${GITHUB_REF#refs/*/}/" daemon/Cargo.toml
+          sed -i "0,/0.1.0/ s/0.1.0/${GITHUB_REF#refs/*/}/" cloud_lib/Cargo.toml
+      - name: Build package
+        run: cargo build --release
+      - name: Prepare release package
+        run: ./build.sh --arch x86_64 --version ${GITHUB_REF#refs/*/}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: universal-x86_64
+          path: /tmp/ad-agent*.tar.gz
+          if-no-files-found: error
+
+  release_gh:
+    needs: [build_binary_x86]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: write
+      deployments: write
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/dowload-artifact@v3
+        with:
+          path: /tmp/ad-agent*.tar.gz
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: /tmp/ad-agent*.tar.gz
