@@ -75,5 +75,5 @@ Automatdeck agent was created by Kheshav Sewnundun.
 
 ## License
 
-[MIT](https://choosealicense.com/licenses/mit/)
+[MIT](https://github.com/kheshav/automatdeck-agent/blob/master/LICENSE)
 
