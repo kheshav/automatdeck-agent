@@ -35,7 +35,7 @@ jobs:
       deployments: write
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/dowload-artifact@v3
+      - uses: actions/download-artifact@v3
         with:
           path: /tmp/ad-agent*.tar.gz
       - name: Release

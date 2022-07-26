@@ -1,5 +1,11 @@
 name: integration-checks
-on: [push]
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
 jobs:
   cargo-check:
     strategy:
