@@ -19,7 +19,7 @@ jobs:
       - name: Build package
         run: cargo build --release
       - name: Prepare release package
-        run: ./build.sh --arch x86_64 --version ${GITHUB_REF#refs/*/}
+        run: ./build.sh --arch x86_64-unknown-linux-musl --version ${GITHUB_REF#refs/*/}
       - uses: actions/upload-artifact@v3
         with:
           name: universal-x86_64

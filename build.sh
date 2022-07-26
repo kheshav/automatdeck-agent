@@ -52,11 +52,11 @@ enabled_modules = [\"example.py\"] # Double quoted String separated by comma
 """ > /tmp/ad-agent/config/settings.toml
 
 echo "Copying binary"
-cp -v ./target/$arch/release/ad-agent /tmp/ad-agent/
+cp -v ./target/${arch}/release/ad-agent /tmp/ad-agent/
 chmod +x /tmp/ad-agent/ad-agent
 
 echo "Generating tar file"
-tar -czvf /tmp/ad-agent_${version}_${arch}.tar.gz -C /tmp ad-agent
+tar -czvf /tmp/ad-agent_${version}_${arch%-*-*-*}.tar.gz -C /tmp ad-agent
 
 echo "Cleaning temp dir"
 rm -rf /tmp/ad-agent
