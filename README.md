@@ -1,4 +1,3 @@
-
 # Automatdeck agent
 
 Website: https://automatdeck.com
@@ -10,15 +9,22 @@ It allows you to manage your automations in a simple intuitive yet powerful conf
 
 Key Features of automatdeck:
 
-- **Workflows:** Configure your workflows in terms of stages and jobs. Allowing you to trigger a specific workflow configuration via REST/API.
-- **Variables:** Configure variables to be used by commands.
-- **Meta-Data:** Allows to run flow using dynamic data.
-- **Execution Strategy:** Run commands in same shell env or each command in different shell env.
-- **Retry Policy:** Configure retry.
-- **Pre & Post Execution scripts:** Run scripts before and after executions.
-- **Custom Plugins:** Create your own python modules and use them as plugins.
+-   **Workflows:** Configure your workflows in terms of stages and jobs. Allowing you to trigger a specific workflow configuration via REST/API.
+-   **Variables:** Configure variables to be used by commands.
+-   **Meta-Data:** Allows to run flow using dynamic data.
+-   **Execution Strategy:** Run commands in same shell env or each command in different shell env.
+-   **Retry Policy:** Configure retry.
+-   **Pre & Post Execution scripts:** Run scripts before and after executions.
+-   **Custom Plugins:** Create your own python modules and use them as plugins.
+-   **Cloud Modules:** Seamlessly access cloud resources; eg: AWS S3 (Create bucket, Copy files, Remove files)
 
-
+<p align="center">
+    <img src="img/syntax.jpeg" width="600" height="400">
+</p>
+Flow
+<p align="center">
+    <img src="img/flow.png" width="700">
+</p>
 
 ## Documentation
 
@@ -30,8 +36,8 @@ If you wish to contribute to automatdeck agent, you will first need to install R
 
 Secondly you will need to create an automatdeck account, create an agent, configuration and request. Please refer to the [documentation](https://doc.automatdeck.com).
 
-
 ### Build
+
 To build your modified version of automatdeck agent:
 
 ```bash
@@ -65,15 +71,12 @@ OPTIONS:
 ```
 
 > **Warning**
-> Make sure to revert back your changes in `config/settings.toml` before doing a Pull Request. Unless of course changes in the latter concerns optimizations. 
-
+> Make sure to revert back your changes in `config/settings.toml` before doing a Pull Request. Unless of course changes in the latter concerns optimizations.
 
 ## Authors
 
 Automatdeck agent was created by Kheshav Sewnundun.
 
-
 ## License
 
 [MIT](https://github.com/kheshav/automatdeck-agent/blob/master/LICENSE)
-
